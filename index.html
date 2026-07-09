@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Upload an image and arrange print-ready copies on a card grid."
+    />
+    <title>Printable Card Grid Generator</title>
+    <style id="printPageSize"></style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="controls" aria-labelledby="appTitle">
+        <div class="hero">
+          <p class="eyebrow">Browser print layout tool</p>
+          <h1 id="appTitle">Printable Card Grid Generator</h1>
+          <p>
+            Upload an image, choose the card size, and generate a print-ready
+            sheet. When printing, select <strong>Actual size</strong> or
+            <strong>100% scale</strong>.
+          </p>
+        </div>
+
+        <div class="control-panel">
+          <label class="file-control">
+            <span>Image</span>
+            <input
+              id="imageUpload"
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+            />
+          </label>
+
+          <div class="image-preview" aria-live="polite">
+            <div class="image-preview-frame">
+              <span id="imagePlaceholder">PNG, JPG, JPEG, or WEBP</span>
+              <img id="imagePreview" alt="Uploaded image preview" hidden />
+            </div>
+            <p id="imageMeta">No image selected.</p>
+          </div>
+
+          <div class="settings-grid">
+            <label>
+              <span>Paper size</span>
+              <select id="paper">
+                <option value="letter" selected>US Letter</option>
+                <option value="a4">A4</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Card long side, cm</span>
+              <input
+                id="cardLongSideCm"
+                type="number"
+                value="6.5"
+                step="0.1"
+                min="1"
+              />
+            </label>
+
+            <label>
+              <span>Target card count</span>
+              <input
+                id="targetCardCount"
+                type="number"
+                placeholder="Auto-fill"
+                min="1"
+              />
+            </label>
+
+            <label>
+              <span>Manual columns</span>
+              <input id="manualColumns" type="number" placeholder="Auto" min="1" />
+            </label>
+
+            <label>
+              <span>Manual rows</span>
+              <input id="manualRows" type="number" placeholder="Auto" min="1" />
+            </label>
+
+            <label>
+              <span>Margin, cm</span>
+              <input id="marginCm" type="number" value="0.5" step="0.1" min="0" />
+            </label>
+
+            <label>
+              <span>Horizontal gap, cm</span>
+              <input
+                id="horizontalGapCm"
+                type="number"
+                value="0.5"
+                step="0.1"
+                min="0"
+              />
+            </label>
+
+            <label>
+              <span>Vertical gap, cm</span>
+              <input
+                id="verticalGapCm"
+                type="number"
+                value="1.0"
+                step="0.1"
+                min="0"
+              />
+            </label>
+
+            <label class="checkbox-control">
+              <input id="showCutGuides" type="checkbox" checked />
+              <span>Show cut guides</span>
+            </label>
+
+            <label>
+              <span>Guide style</span>
+              <select id="cutGuideMode">
+                <option value="rectangle">Light rectangle</option>
+                <option value="corners">Corner marks</option>
+                <option value="both" selected>Both</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="actions">
+            <button id="printButton" type="button" disabled>
+              Print / Save as PDF
+            </button>
+          </div>
+
+          <p id="summary" class="summary">Upload an image to build a sheet.</p>
+          <p id="warning" class="warning" role="status" hidden></p>
+        </div>
+      </section>
+
+      <section class="preview-area" aria-label="Printable sheet preview">
+        <div id="sheet" class="sheet is-empty">
+          <p class="empty-state">Upload an image to preview the printable sheet.</p>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
