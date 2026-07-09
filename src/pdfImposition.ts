@@ -127,6 +127,8 @@ export function computePdfCapacity(settings: PdfImpositionSettings): {
   if (
     !Number.isFinite(settings.columns) ||
     !Number.isFinite(settings.rows) ||
+    !Number.isInteger(settings.columns) ||
+    !Number.isInteger(settings.rows) ||
     settings.columns < 1 ||
     settings.rows < 1
   ) {

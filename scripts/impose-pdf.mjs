@@ -83,7 +83,14 @@ function getPaperSize(settings) {
 }
 
 function validateSettings(settings) {
-  if (!Number.isFinite(settings.columns) || !Number.isFinite(settings.rows) || settings.columns < 1 || settings.rows < 1) {
+  if (
+    !Number.isFinite(settings.columns) ||
+    !Number.isFinite(settings.rows) ||
+    !Number.isInteger(settings.columns) ||
+    !Number.isInteger(settings.rows) ||
+    settings.columns < 1 ||
+    settings.rows < 1
+  ) {
     throw new Error('--columns and --rows must be positive integers')
   }
   if (
