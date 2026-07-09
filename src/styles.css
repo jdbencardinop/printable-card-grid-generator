@@ -99,6 +99,28 @@ p {
   padding: 1.25rem;
 }
 
+.mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0.25rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #f8fafc;
+}
+
+.mode-tab {
+  box-shadow: none;
+  background: transparent;
+  color: #526071;
+}
+
+.mode-tab.is-active {
+  color: #ffffff;
+  background: #155dfc;
+  box-shadow: 0 8px 18px rgba(21, 93, 252, 0.2);
+}
+
 label {
   display: grid;
   gap: 0.4rem;
@@ -261,6 +283,17 @@ button:focus-visible {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.pdf-card {
+  display: grid;
+  place-items: center;
+  color: #64748b;
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.05), transparent),
+    #ffffff;
+  font-size: 0.85rem;
+  font-weight: 800;
 }
 
 .card.guide-rectangle::after,

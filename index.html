@@ -17,116 +17,212 @@
           <p class="eyebrow">Browser print layout tool</p>
           <h1 id="appTitle">Printable Card Grid Generator</h1>
           <p>
-            Upload an image, choose the card size, and generate a print-ready
-            sheet. When printing, select <strong>Actual size</strong> or
-            <strong>100% scale</strong>.
+            Upload one image to repeat, or upload a multi-page PDF and impose
+            each page into a print-ready sheet. When printing, select
+            <strong>Actual size</strong> or <strong>100% scale</strong>.
           </p>
         </div>
 
         <div class="control-panel">
-          <label class="file-control">
-            <span>Image</span>
-            <input
-              id="imageUpload"
-              type="file"
-              accept="image/png,image/jpeg,image/jpg,image/webp"
-            />
-          </label>
-
-          <div class="image-preview" aria-live="polite">
-            <div class="image-preview-frame">
-              <span id="imagePlaceholder">PNG, JPG, JPEG, or WEBP</span>
-              <img id="imagePreview" alt="Uploaded image preview" hidden />
-            </div>
-            <p id="imageMeta">No image selected.</p>
-          </div>
-
-          <div class="settings-grid">
-            <label>
-              <span>Paper size</span>
-              <select id="paper">
-                <option value="letter" selected>US Letter</option>
-                <option value="a4">A4</option>
-              </select>
-            </label>
-
-            <label>
-              <span>Card long side, cm</span>
-              <input
-                id="cardLongSideCm"
-                type="number"
-                value="6.5"
-                step="0.1"
-                min="1"
-              />
-            </label>
-
-            <label>
-              <span>Target card count</span>
-              <input
-                id="targetCardCount"
-                type="number"
-                placeholder="Auto-fill"
-                min="1"
-              />
-            </label>
-
-            <label>
-              <span>Manual columns</span>
-              <input id="manualColumns" type="number" placeholder="Auto" min="1" />
-            </label>
-
-            <label>
-              <span>Manual rows</span>
-              <input id="manualRows" type="number" placeholder="Auto" min="1" />
-            </label>
-
-            <label>
-              <span>Margin, cm</span>
-              <input id="marginCm" type="number" value="0.5" step="0.1" min="0" />
-            </label>
-
-            <label>
-              <span>Horizontal gap, cm</span>
-              <input
-                id="horizontalGapCm"
-                type="number"
-                value="0.5"
-                step="0.1"
-                min="0"
-              />
-            </label>
-
-            <label>
-              <span>Vertical gap, cm</span>
-              <input
-                id="verticalGapCm"
-                type="number"
-                value="1.0"
-                step="0.1"
-                min="0"
-              />
-            </label>
-
-            <label class="checkbox-control">
-              <input id="showCutGuides" type="checkbox" checked />
-              <span>Show cut guides</span>
-            </label>
-
-            <label>
-              <span>Guide style</span>
-              <select id="cutGuideMode">
-                <option value="rectangle">Light rectangle</option>
-                <option value="corners">Corner marks</option>
-                <option value="both" selected>Both</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="actions">
-            <button id="printButton" type="button" disabled>
-              Print / Save as PDF
+          <div class="mode-tabs" role="tablist" aria-label="Layout mode">
+            <button id="imageModeButton" class="mode-tab is-active" type="button">
+              Repeat image
             </button>
+            <button id="pdfModeButton" class="mode-tab" type="button">
+              Multi-page PDF
+            </button>
+          </div>
+
+          <div id="imageModePanel">
+            <label class="file-control">
+              <span>Image</span>
+              <input
+                id="imageUpload"
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+              />
+            </label>
+
+            <div class="image-preview" aria-live="polite">
+              <div class="image-preview-frame">
+                <span id="imagePlaceholder">PNG, JPG, JPEG, WEBP, or SVG</span>
+                <img id="imagePreview" alt="Uploaded image preview" hidden />
+              </div>
+              <p id="imageMeta">No image selected.</p>
+            </div>
+
+            <div class="settings-grid">
+              <label>
+                <span>Paper size</span>
+                <select id="paper">
+                  <option value="letter" selected>US Letter</option>
+                  <option value="a4">A4</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Card long side, cm</span>
+                <input
+                  id="cardLongSideCm"
+                  type="number"
+                  value="6.5"
+                  step="0.1"
+                  min="1"
+                />
+              </label>
+
+              <label>
+                <span>Target card count</span>
+                <input
+                  id="targetCardCount"
+                  type="number"
+                  placeholder="Auto-fill"
+                  min="1"
+                />
+              </label>
+
+              <label>
+                <span>Manual columns</span>
+                <input id="manualColumns" type="number" placeholder="Auto" min="1" />
+              </label>
+
+              <label>
+                <span>Manual rows</span>
+                <input id="manualRows" type="number" placeholder="Auto" min="1" />
+              </label>
+
+              <label>
+                <span>Margin, cm</span>
+                <input id="marginCm" type="number" value="0.5" step="0.1" min="0" />
+              </label>
+
+              <label>
+                <span>Horizontal gap, cm</span>
+                <input
+                  id="horizontalGapCm"
+                  type="number"
+                  value="0.5"
+                  step="0.1"
+                  min="0"
+                />
+              </label>
+
+              <label>
+                <span>Vertical gap, cm</span>
+                <input
+                  id="verticalGapCm"
+                  type="number"
+                  value="1.0"
+                  step="0.1"
+                  min="0"
+                />
+              </label>
+
+              <label class="checkbox-control">
+                <input id="showCutGuides" type="checkbox" checked />
+                <span>Show cut guides</span>
+              </label>
+
+              <label>
+                <span>Guide style</span>
+                <select id="cutGuideMode">
+                  <option value="rectangle">Light rectangle</option>
+                  <option value="corners">Corner marks</option>
+                  <option value="both" selected>Both</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="actions">
+              <button id="printButton" type="button" disabled>
+                Print / Save as PDF
+              </button>
+            </div>
+          </div>
+
+          <div id="pdfModePanel" hidden>
+            <label class="file-control">
+              <span>Multi-page PDF</span>
+              <input id="pdfUpload" type="file" accept="application/pdf" />
+            </label>
+
+            <p id="pdfMeta" class="summary">No PDF selected.</p>
+
+            <div class="settings-grid">
+              <label>
+                <span>Paper size</span>
+                <select id="pdfPaper">
+                  <option value="letter" selected>US Letter</option>
+                  <option value="a4">A4</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Orientation</span>
+                <select id="pdfOrientation">
+                  <option value="landscape" selected>Landscape</option>
+                  <option value="portrait">Portrait</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Card width, in</span>
+                <input id="pdfCardWidthIn" type="number" value="3.5" step="0.125" min="0.25" />
+              </label>
+
+              <label>
+                <span>Card height, in</span>
+                <input id="pdfCardHeightIn" type="number" value="4" step="0.125" min="0.25" />
+              </label>
+
+              <label>
+                <span>Columns</span>
+                <input id="pdfColumns" type="number" value="3" min="1" />
+              </label>
+
+              <label>
+                <span>Rows</span>
+                <input id="pdfRows" type="number" value="2" min="1" />
+              </label>
+
+              <label>
+                <span>Horizontal margin, in</span>
+                <input id="pdfMarginXIn" type="number" value="0.25" step="0.05" min="0" />
+              </label>
+
+              <label>
+                <span>Vertical margin, in</span>
+                <input id="pdfMarginYIn" type="number" value="0.25" step="0.05" min="0" />
+              </label>
+
+              <label>
+                <span>Horizontal gap, in</span>
+                <input id="pdfGapXIn" type="number" value="0" step="0.05" min="0" />
+              </label>
+
+              <label>
+                <span>Vertical gap, in</span>
+                <input id="pdfGapYIn" type="number" value="0" step="0.05" min="0" />
+              </label>
+
+              <label>
+                <span>Guide style</span>
+                <select id="pdfCutGuideMode">
+                  <option value="none">None</option>
+                  <option value="corners">Light crop marks</option>
+                  <option value="dotted">Dotted boxes</option>
+                  <option value="rectangle">Solid boxes</option>
+                  <option value="crop-dotted" selected>Crop marks + dotted boxes</option>
+                  <option value="crop-solid">Crop marks + solid boxes</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="actions">
+              <button id="generatePdfButton" type="button" disabled>
+                Generate imposed PDF
+              </button>
+            </div>
           </div>
 
           <p id="summary" class="summary">Upload an image to build a sheet.</p>

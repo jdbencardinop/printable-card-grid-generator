@@ -1,10 +1,10 @@
 # Printable Card Grid Generator
 
-A small browser-based tool for arranging an uploaded image into a printable grid on US Letter or A4 paper.
+A small browser-based tool for arranging cards into print-ready grids on US Letter or A4 paper.
 
 ## Features
 
-- Upload a PNG, JPG, JPEG, or WEBP image
+- Upload a PNG, JPG, JPEG, WEBP, or SVG image
 - Preserve the uploaded image aspect ratio
 - Default US Letter page
 - Default 6.5 cm card long side
@@ -14,6 +14,10 @@ A small browser-based tool for arranging an uploaded image into a printable grid
 - Adjustable margins and spacing
 - Optional light cut guides
 - Print or save as PDF from the browser
+- Multi-page PDF imposition mode using `pdf-lib`
+- Preserve vector PDF quality when laying out PDF pages
+- PDF guide variants: none, crop marks, dotted boxes, solid boxes, crop + dotted, crop + solid
+- Standalone local PDF imposition script
 
 ## Development
 
@@ -27,6 +31,29 @@ npm run dev
 ```bash
 npm run build
 npm run preview
+```
+
+## Local PDF imposition script
+
+Use the local script when you want to impose a multi-page PDF without opening the browser:
+
+```bash
+npm run impose:pdf -- input.pdf output.pdf \
+  --paper letter \
+  --orientation landscape \
+  --card-width 3.5 \
+  --card-height 4 \
+  --columns 3 \
+  --rows 2 \
+  --margin-x 0.25 \
+  --margin-y 0.25 \
+  --marks crop-dotted
+```
+
+Supported mark styles:
+
+```txt
+none, crop, dotted, solid, crop-dotted, crop-solid
 ```
 
 ## Deployment

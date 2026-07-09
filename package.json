@@ -9,10 +9,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "impose:pdf": "node scripts/impose-pdf.mjs",
     "preview": "vite preview"
   },
   "devDependencies": {
     "typescript": "~6.0.2",
     "vite": "^8.1.1"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
   }
 }

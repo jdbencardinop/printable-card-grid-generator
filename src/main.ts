@@ -1,17 +1,39 @@
+import { PDFDocument } from 'pdf-lib'
 import { PAPER_PRESETS, computeLayout } from './layout'
+import { computePdfCapacity, getPaperSizePoints, imposePdf } from './pdfImposition'
 import './styles.css'
-import type { CutGuideMode, ImageInfo, LayoutSettings, PaperPresetKey } from './types'
+import type {
+  CutGuideMode,
+  ImageInfo,
+  LayoutSettings,
+  PaperOrientation,
+  PaperPresetKey,
+  PdfImpositionSettings,
+} from './types'
 
 const SUPPORTED_IMAGE_TYPES = new Set([
   'image/jpeg',
   'image/jpg',
   'image/png',
   'image/webp',
+  'image/svg+xml',
 ])
 
-const CUT_GUIDE_MODES: readonly CutGuideMode[] = ['none', 'rectangle', 'corners', 'both']
+const CUT_GUIDE_MODES: readonly CutGuideMode[] = [
+  'none',
+  'rectangle',
+  'corners',
+  'both',
+  'dotted',
+  'crop-dotted',
+  'crop-solid',
+]
 
+type AppMode = 'image' | 'pdf'
+
+let appMode: AppMode = 'image'
 let imageInfo: ImageInfo | null = null
+let pdfInfo: { bytes: Uint8Array; pageCount: number; name: string } | null = null
 
 function query<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector)
@@ -24,6 +46,10 @@ function query<T extends Element>(selector: string): T {
 }
 
 const elements = {
+  imageModeButton: query<HTMLButtonElement>('#imageModeButton'),
+  pdfModeButton: query<HTMLButtonElement>('#pdfModeButton'),
+  imageModePanel: query<HTMLDivElement>('#imageModePanel'),
+  pdfModePanel: query<HTMLDivElement>('#pdfModePanel'),
   paper: query<HTMLSelectElement>('#paper'),
   imageUpload: query<HTMLInputElement>('#imageUpload'),
   imagePreview: query<HTMLImageElement>('#imagePreview'),
@@ -39,6 +65,20 @@ const elements = {
   showCutGuides: query<HTMLInputElement>('#showCutGuides'),
   cutGuideMode: query<HTMLSelectElement>('#cutGuideMode'),
   printButton: query<HTMLButtonElement>('#printButton'),
+  pdfUpload: query<HTMLInputElement>('#pdfUpload'),
+  pdfMeta: query<HTMLParagraphElement>('#pdfMeta'),
+  pdfPaper: query<HTMLSelectElement>('#pdfPaper'),
+  pdfOrientation: query<HTMLSelectElement>('#pdfOrientation'),
+  pdfCardWidthIn: query<HTMLInputElement>('#pdfCardWidthIn'),
+  pdfCardHeightIn: query<HTMLInputElement>('#pdfCardHeightIn'),
+  pdfColumns: query<HTMLInputElement>('#pdfColumns'),
+  pdfRows: query<HTMLInputElement>('#pdfRows'),
+  pdfMarginXIn: query<HTMLInputElement>('#pdfMarginXIn'),
+  pdfMarginYIn: query<HTMLInputElement>('#pdfMarginYIn'),
+  pdfGapXIn: query<HTMLInputElement>('#pdfGapXIn'),
+  pdfGapYIn: query<HTMLInputElement>('#pdfGapYIn'),
+  pdfCutGuideMode: query<HTMLSelectElement>('#pdfCutGuideMode'),
+  generatePdfButton: query<HTMLButtonElement>('#generatePdfButton'),
   sheet: query<HTMLDivElement>('#sheet'),
   summary: query<HTMLParagraphElement>('#summary'),
   warning: query<HTMLParagraphElement>('#warning'),
@@ -47,6 +87,10 @@ const elements = {
 
 function isPaperPresetKey(value: string): value is PaperPresetKey {
   return Object.hasOwn(PAPER_PRESETS, value)
+}
+
+function isPaperOrientation(value: string): value is PaperOrientation {
+  return value === 'portrait' || value === 'landscape'
 }
 
 function isCutGuideMode(value: string): value is CutGuideMode {
@@ -61,6 +105,21 @@ function readRequiredNumber(input: HTMLInputElement, fallback: number): number {
   }
 
   return value
+}
+
+function readPositiveNumber(input: HTMLInputElement, fallback: number): number {
+  const value = readRequiredNumber(input, fallback)
+  return Number.isFinite(value) && value > 0 ? value : fallback
+}
+
+function readNonNegativeNumber(input: HTMLInputElement, fallback: number): number {
+  const value = readRequiredNumber(input, fallback)
+  return Number.isFinite(value) && value >= 0 ? value : fallback
+}
+
+function readPositiveInteger(input: HTMLInputElement, fallback: number): number {
+  const value = Number(input.value)
+  return Number.isFinite(value) && value >= 1 ? Math.floor(value) : fallback
 }
 
 function readOptionalPositiveInteger(input: HTMLInputElement): number | undefined {
@@ -82,7 +141,7 @@ function revokePreviousImage(): void {
 function readImageFile(file: File): Promise<ImageInfo> {
   return new Promise((resolve, reject) => {
     if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
-      reject(new Error('Choose a PNG, JPG, JPEG, or WEBP image.'))
+      reject(new Error('Choose a PNG, JPG, JPEG, WEBP, or SVG image.'))
       return
     }
 
@@ -105,6 +164,20 @@ function readImageFile(file: File): Promise<ImageInfo> {
 
     img.src = src
   })
+}
+
+async function readPdfFile(file: File): Promise<{ bytes: Uint8Array; pageCount: number; name: string }> {
+  if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+    throw new Error('Choose a PDF file.')
+  }
+
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  const pdf = await PDFDocument.load(bytes)
+  return {
+    bytes,
+    pageCount: pdf.getPageCount(),
+    name: file.name,
+  }
 }
 
 function getSettingsFromControls(): LayoutSettings {
@@ -132,6 +205,36 @@ function getSettingsFromControls(): LayoutSettings {
   }
 }
 
+function getPdfSettingsFromControls(): PdfImpositionSettings {
+  const paperValue = elements.pdfPaper.value
+  const orientationValue = elements.pdfOrientation.value
+  const guideModeValue = elements.pdfCutGuideMode.value
+
+  if (!isPaperPresetKey(paperValue)) {
+    throw new Error(`Unsupported paper preset: ${paperValue}`)
+  }
+  if (!isPaperOrientation(orientationValue)) {
+    throw new Error(`Unsupported paper orientation: ${orientationValue}`)
+  }
+  if (!isCutGuideMode(guideModeValue)) {
+    throw new Error(`Unsupported cut guide mode: ${guideModeValue}`)
+  }
+
+  return {
+    paper: paperValue,
+    orientation: orientationValue,
+    cardWidthIn: readPositiveNumber(elements.pdfCardWidthIn, 3.5),
+    cardHeightIn: readPositiveNumber(elements.pdfCardHeightIn, 4),
+    columns: readPositiveInteger(elements.pdfColumns, 3),
+    rows: readPositiveInteger(elements.pdfRows, 2),
+    marginXIn: readNonNegativeNumber(elements.pdfMarginXIn, 0.25),
+    marginYIn: readNonNegativeNumber(elements.pdfMarginYIn, 0.25),
+    horizontalGapIn: readNonNegativeNumber(elements.pdfGapXIn, 0),
+    verticalGapIn: readNonNegativeNumber(elements.pdfGapYIn, 0),
+    cutGuideMode: guideModeValue,
+  }
+}
+
 function syncPrintPageSize(paper: PaperPresetKey): void {
   const pageSize = paper === 'a4' ? 'A4' : 'letter'
   elements.printPageSize.textContent = `@page { size: ${pageSize} portrait; margin: 0; }`
@@ -156,7 +259,7 @@ function renderEmptySheet(settings: LayoutSettings): void {
   setWarning(null)
 }
 
-function render(): void {
+function renderImageMode(): void {
   const settings = getSettingsFromControls()
   syncPrintPageSize(settings.paper)
 
@@ -218,6 +321,70 @@ function render(): void {
   setWarning(warnings.length > 0 ? warnings.join(' ') : null)
 }
 
+function renderPdfMode(): void {
+  const settings = getPdfSettingsFromControls()
+  const layout = computePdfCapacity(settings)
+  const pageSize = getPaperSizePoints(settings.paper, settings.orientation)
+  const fragment = document.createDocumentFragment()
+  const renderedCount = Math.min(pdfInfo?.pageCount ?? layout.capacity, layout.capacity)
+  const pageWidthIn = pageSize.width / 72
+  const pageHeightIn = pageSize.height / 72
+
+  elements.sheet.className = 'sheet pdf-sheet'
+  elements.sheet.innerHTML = ''
+  elements.sheet.style.setProperty('--page-width-cm', `${pageWidthIn * 2.54}cm`)
+  elements.sheet.style.setProperty('--page-height-cm', `${pageHeightIn * 2.54}cm`)
+  elements.sheet.style.setProperty('--card-width-cm', `${settings.cardWidthIn * 2.54}cm`)
+  elements.sheet.style.setProperty('--card-height-cm', `${settings.cardHeightIn * 2.54}cm`)
+  elements.sheet.style.setProperty('--columns', String(settings.columns))
+  elements.sheet.style.setProperty('--margin-cm', `${settings.marginYIn * 2.54}cm ${settings.marginXIn * 2.54}cm`)
+  elements.sheet.style.setProperty('--h-gap-cm', `${settings.horizontalGapIn * 2.54}cm`)
+  elements.sheet.style.setProperty('--v-gap-cm', `${settings.verticalGapIn * 2.54}cm`)
+
+  for (let i = 0; i < renderedCount; i += 1) {
+    const card = document.createElement('div')
+    card.className = `card pdf-card guide-${settings.cutGuideMode}`
+    card.textContent = `PDF page ${i + 1}`
+    fragment.append(card)
+  }
+
+  elements.sheet.append(fragment)
+  elements.generatePdfButton.disabled = !pdfInfo || !layout.fitsPage
+  elements.printButton.disabled = true
+
+  const sheets = pdfInfo ? Math.ceil(pdfInfo.pageCount / layout.capacity) : 0
+  elements.summary.textContent = pdfInfo
+    ? `${settings.columns} x ${settings.rows} = ${layout.capacity} pages per sheet. ` +
+      `${pdfInfo.pageCount} PDF page(s) will generate ${sheets} sheet(s).`
+    : 'Upload a PDF to generate an imposed PDF.'
+
+  const warnings: string[] = []
+  if (!layout.fitsPage) {
+    warnings.push('The selected PDF layout exceeds the page size.')
+  }
+  if (!pdfInfo) {
+    warnings.push('No PDF selected yet.')
+  }
+  setWarning(warnings.length > 0 ? warnings.join(' ') : null)
+}
+
+function render(): void {
+  if (appMode === 'image') {
+    renderImageMode()
+  } else {
+    renderPdfMode()
+  }
+}
+
+function setMode(nextMode: AppMode): void {
+  appMode = nextMode
+  elements.imageModePanel.hidden = nextMode !== 'image'
+  elements.pdfModePanel.hidden = nextMode !== 'pdf'
+  elements.imageModeButton.classList.toggle('is-active', nextMode === 'image')
+  elements.pdfModeButton.classList.toggle('is-active', nextMode === 'pdf')
+  render()
+}
+
 async function handleImageUpload(): Promise<void> {
   const file = elements.imageUpload.files?.[0]
 
@@ -240,6 +407,46 @@ async function handleImageUpload(): Promise<void> {
   }
 }
 
+async function handlePdfUpload(): Promise<void> {
+  const file = elements.pdfUpload.files?.[0]
+  if (!file) return
+
+  try {
+    pdfInfo = await readPdfFile(file)
+    elements.pdfMeta.textContent = `${pdfInfo.name}: ${pdfInfo.pageCount} page(s)`
+    render()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Could not load the PDF.'
+    setWarning(message)
+  }
+}
+
+async function generatePdf(): Promise<void> {
+  if (!pdfInfo) return
+
+  try {
+    elements.generatePdfButton.disabled = true
+    elements.generatePdfButton.textContent = 'Generating...'
+    const bytes = await imposePdf(pdfInfo.bytes, getPdfSettingsFromControls())
+    const pdfBuffer = new ArrayBuffer(bytes.byteLength)
+    new Uint8Array(pdfBuffer).set(bytes)
+    const blob = new Blob([pdfBuffer], { type: 'application/pdf' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    const baseName = pdfInfo.name.replace(/\.pdf$/i, '')
+    anchor.href = url
+    anchor.download = `${baseName}-imposed.pdf`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Could not generate the PDF.'
+    setWarning(message)
+  } finally {
+    elements.generatePdfButton.textContent = 'Generate imposed PDF'
+    render()
+  }
+}
+
 function main(): void {
   const controls = document.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
     '.controls input, .controls select',
@@ -250,12 +457,23 @@ function main(): void {
     control.addEventListener('change', render)
   }
 
+  elements.imageModeButton.addEventListener('click', () => setMode('image'))
+  elements.pdfModeButton.addEventListener('click', () => setMode('pdf'))
+
   elements.imageUpload.addEventListener('change', () => {
     void handleImageUpload()
   })
 
+  elements.pdfUpload.addEventListener('change', () => {
+    void handlePdfUpload()
+  })
+
   elements.printButton.addEventListener('click', () => {
     window.print()
+  })
+
+  elements.generatePdfButton.addEventListener('click', () => {
+    void generatePdf()
   })
 
   render()
