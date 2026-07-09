@@ -76,7 +76,39 @@ function readArgs(argv) {
 function getPaperSize(settings) {
   const paper = PAPER_POINTS[settings.paper]
   if (!paper) throw new Error(`Unsupported paper: ${settings.paper}`)
+  if (!['portrait', 'landscape'].includes(settings.orientation)) {
+    throw new Error(`Unsupported orientation: ${settings.orientation}`)
+  }
   return settings.orientation === 'landscape' ? { width: paper.height, height: paper.width } : paper
+}
+
+function validateSettings(settings) {
+  if (!Number.isFinite(settings.columns) || !Number.isFinite(settings.rows) || settings.columns < 1 || settings.rows < 1) {
+    throw new Error('--columns and --rows must be positive integers')
+  }
+  if (
+    !Number.isFinite(settings.cardWidthIn) ||
+    !Number.isFinite(settings.cardHeightIn) ||
+    settings.cardWidthIn <= 0 ||
+    settings.cardHeightIn <= 0
+  ) {
+    throw new Error('--card-width and --card-height must be positive numbers')
+  }
+  if (
+    !Number.isFinite(settings.marginXIn) ||
+    !Number.isFinite(settings.marginYIn) ||
+    !Number.isFinite(settings.horizontalGapIn) ||
+    !Number.isFinite(settings.verticalGapIn) ||
+    settings.marginXIn < 0 ||
+    settings.marginYIn < 0 ||
+    settings.horizontalGapIn < 0 ||
+    settings.verticalGapIn < 0
+  ) {
+    throw new Error('Margins and gaps must be non-negative numbers')
+  }
+  if (!['none', 'crop', 'dotted', 'solid', 'crop-dotted', 'crop-solid'].includes(settings.marks)) {
+    throw new Error(`Unsupported mark style: ${settings.marks}`)
+  }
 }
 
 function drawCropMarks(page, x, y, width, height) {
@@ -133,6 +165,7 @@ function drawGuides(page, x, y, width, height, marks) {
 
 async function main() {
   const { input, output, settings } = readArgs(process.argv.slice(2))
+  validateSettings(settings)
   const sourceBytes = await readFile(input)
   const sourcePdf = await PDFDocument.load(sourceBytes)
   const outputPdf = await PDFDocument.create()

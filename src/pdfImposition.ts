@@ -124,6 +124,35 @@ export function computePdfCapacity(settings: PdfImpositionSettings): {
   usedHeightPt: number
   fitsPage: boolean
 } {
+  if (
+    !Number.isFinite(settings.columns) ||
+    !Number.isFinite(settings.rows) ||
+    settings.columns < 1 ||
+    settings.rows < 1
+  ) {
+    throw new Error('Columns and rows must be positive integers.')
+  }
+  if (
+    !Number.isFinite(settings.cardWidthIn) ||
+    !Number.isFinite(settings.cardHeightIn) ||
+    settings.cardWidthIn <= 0 ||
+    settings.cardHeightIn <= 0
+  ) {
+    throw new Error('Card width and height must be positive numbers.')
+  }
+  if (
+    !Number.isFinite(settings.marginXIn) ||
+    !Number.isFinite(settings.marginYIn) ||
+    !Number.isFinite(settings.horizontalGapIn) ||
+    !Number.isFinite(settings.verticalGapIn) ||
+    settings.marginXIn < 0 ||
+    settings.marginYIn < 0 ||
+    settings.horizontalGapIn < 0 ||
+    settings.verticalGapIn < 0
+  ) {
+    throw new Error('Margins and gaps must be non-negative numbers.')
+  }
+
   const page = getPaperSizePoints(settings.paper, settings.orientation)
   const cardWidthPt = settings.cardWidthIn * INCH
   const cardHeightPt = settings.cardHeightIn * INCH
