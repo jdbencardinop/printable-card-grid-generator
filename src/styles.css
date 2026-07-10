@@ -187,7 +187,7 @@ p {
   padding-right: 0.12rem;
   position: sticky;
   top: 1rem;
-  scrollbar-color: var(--magenta) rgba(255, 250, 240, 0.5);
+  scrollbar-color: var(--ink) rgba(255, 250, 240, 0.5);
   scrollbar-width: thin;
   scrollbar-gutter: stable;
 }
@@ -201,15 +201,33 @@ p {
 .controls::-webkit-scrollbar-track,
 .preview-scroll::-webkit-scrollbar-track {
   border-radius: 999px;
-  background: rgba(255, 250, 240, 0.5);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.36)),
+    rgba(255, 250, 240, 0.5);
 }
 
 .controls::-webkit-scrollbar-thumb,
 .preview-scroll::-webkit-scrollbar-thumb {
   border: 3px solid rgba(255, 250, 240, 0.68);
   border-radius: 999px;
+  background: var(--ink);
+}
+
+.controls::-webkit-scrollbar-thumb:vertical,
+.preview-scroll::-webkit-scrollbar-thumb:vertical {
   background:
-    linear-gradient(180deg, var(--cyan), var(--magenta), var(--yellow));
+    linear-gradient(180deg, var(--ink) 0 20%, var(--cyan) 20% 46%, var(--magenta) 46% 73%, var(--yellow) 73% 100%);
+}
+
+.controls::-webkit-scrollbar-thumb:horizontal,
+.preview-scroll::-webkit-scrollbar-thumb:horizontal {
+  background:
+    linear-gradient(90deg, var(--ink) 0 20%, var(--cyan) 20% 46%, var(--magenta) 46% 73%, var(--yellow) 73% 100%);
+}
+
+.controls::-webkit-scrollbar-corner,
+.preview-scroll::-webkit-scrollbar-corner {
+  background: rgba(255, 250, 240, 0.5);
 }
 
 .hero {
@@ -253,16 +271,6 @@ p {
   border-radius: 50%;
   opacity: 0.76;
   content: "";
-  transform-origin: center;
-  transition:
-    opacity 180ms ease,
-    transform 520ms var(--ease-out-quart);
-}
-
-.hero:hover::after,
-.hero:focus-within::after {
-  opacity: 0.92;
-  transform: rotate(18deg) scale(1.04);
 }
 
 .hero-kicker-row {
@@ -656,7 +664,7 @@ input[type="file"]::file-selector-button {
   min-width: 0;
   overflow: auto;
   padding: clamp(1rem, 3vw, 2rem);
-  scrollbar-color: var(--cyan) rgba(255, 250, 240, 0.38);
+  scrollbar-color: var(--ink) rgba(255, 250, 240, 0.38);
   scrollbar-width: thin;
 }
 
@@ -976,11 +984,6 @@ input[type="file"]::file-selector-button {
   }
 
   button:not(:disabled):hover {
-    transform: none;
-  }
-
-  .hero:hover::after,
-  .hero:focus-within::after {
     transform: none;
   }
 
