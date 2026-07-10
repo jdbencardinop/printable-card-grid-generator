@@ -1,5 +1,5 @@
 import { PDFDocument } from 'pdf-lib'
-import { PAPER_PRESETS, computeLayout } from './layout'
+import { PAPER_PRESETS, computeLayout, getPaperDimensionsCm } from './layout'
 import { computePdfCapacity, getPaperSizePoints, imposePdf } from './pdfImposition'
 import './styles.css'
 import type {
@@ -29,11 +29,44 @@ const CUT_GUIDE_MODES: readonly CutGuideMode[] = [
   'crop-solid',
 ]
 
+const REDUCED_MOTION_QUERY = window.matchMedia('(prefers-reduced-motion: reduce)')
+const KONAMI_KEYS = [
+  'ArrowUp',
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowLeft',
+  'ArrowRight',
+  'b',
+  'a',
+] as const
+
+const SCROLLBAR_COLOR_STOPS = [
+  { progress: 0, color: [33, 24, 20] },
+  { progress: 0.25, color: [33, 24, 20] },
+  { progress: 0.26, color: [0, 111, 128] },
+  { progress: 0.5, color: [0, 111, 128] },
+  { progress: 0.51, color: [157, 23, 77] },
+  { progress: 0.75, color: [157, 23, 77] },
+  { progress: 0.76, color: [122, 82, 0] },
+  { progress: 1, color: [122, 82, 0] },
+] as const
+
 type AppMode = 'image' | 'pdf'
 
 let appMode: AppMode = 'image'
 let imageInfo: ImageInfo | null = null
 let pdfInfo: { bytes: Uint8Array; pageCount: number; name: string } | null = null
+let scrollCueFrame: number | undefined
+let scrollbarFrame: number | undefined
+let pointerFrame: number | undefined
+let pendingPointer: { x: number; y: number } | null = null
+let easterProgress = 0
+let easterTimeout: number | undefined
+let registrationTapCount = 0
+let registrationTapTimeout: number | undefined
 
 function query<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector)
@@ -48,9 +81,11 @@ function query<T extends Element>(selector: string): T {
 const elements = {
   imageModeButton: query<HTMLButtonElement>('#imageModeButton'),
   pdfModeButton: query<HTMLButtonElement>('#pdfModeButton'),
+  controls: query<HTMLElement>('.controls'),
   imageModePanel: query<HTMLDivElement>('#imageModePanel'),
   pdfModePanel: query<HTMLDivElement>('#pdfModePanel'),
   paper: query<HTMLSelectElement>('#paper'),
+  paperOrientation: query<HTMLSelectElement>('#paperOrientation'),
   imageUpload: query<HTMLInputElement>('#imageUpload'),
   imagePreview: query<HTMLImageElement>('#imagePreview'),
   imagePlaceholder: query<HTMLSpanElement>('#imagePlaceholder'),
@@ -82,7 +117,17 @@ const elements = {
   sheet: query<HTMLDivElement>('#sheet'),
   summary: query<HTMLParagraphElement>('#summary'),
   warning: query<HTMLParagraphElement>('#warning'),
+  previewArea: query<HTMLElement>('.preview-area'),
+  previewScroll: query<HTMLDivElement>('#previewScroll'),
+  scrollCue: query<HTMLDivElement>('#scrollCue'),
+  easterEggOverlay: query<HTMLDivElement>('#easterEggOverlay'),
+  easterEggHint: query<HTMLSpanElement>('#easterEggHint'),
+  registrationWheel: query<HTMLElement>('#registrationWheel'),
   printPageSize: query<HTMLStyleElement>('#printPageSize'),
+}
+
+function prefersReducedMotion(): boolean {
+  return REDUCED_MOTION_QUERY.matches
 }
 
 function isPaperPresetKey(value: string): value is PaperPresetKey {
@@ -182,10 +227,15 @@ async function readPdfFile(file: File): Promise<{ bytes: Uint8Array; pageCount: 
 
 function getSettingsFromControls(): LayoutSettings {
   const paperValue = elements.paper.value
+  const orientationValue = elements.paperOrientation.value
   const guideModeValue = elements.cutGuideMode.value
 
   if (!isPaperPresetKey(paperValue)) {
     throw new Error(`Unsupported paper preset: ${paperValue}`)
+  }
+
+  if (!isPaperOrientation(orientationValue)) {
+    throw new Error(`Unsupported paper orientation: ${orientationValue}`)
   }
 
   if (!isCutGuideMode(guideModeValue)) {
@@ -194,6 +244,7 @@ function getSettingsFromControls(): LayoutSettings {
 
   return {
     paper: paperValue,
+    orientation: orientationValue,
     marginCm: readRequiredNumber(elements.marginCm, 0.5),
     horizontalGapCm: readRequiredNumber(elements.horizontalGapCm, 0.5),
     verticalGapCm: readRequiredNumber(elements.verticalGapCm, 1),
@@ -235,9 +286,9 @@ function getPdfSettingsFromControls(): PdfImpositionSettings {
   }
 }
 
-function syncPrintPageSize(paper: PaperPresetKey): void {
+function syncPrintPageSize(paper: PaperPresetKey, orientation: PaperOrientation): void {
   const pageSize = paper === 'a4' ? 'A4' : 'letter'
-  elements.printPageSize.textContent = `@page { size: ${pageSize} portrait; margin: 0; }`
+  elements.printPageSize.textContent = `@page { size: ${pageSize} ${orientation}; margin: 0; }`
 }
 
 function setWarning(message: string | null): void {
@@ -246,7 +297,7 @@ function setWarning(message: string | null): void {
 }
 
 function renderEmptySheet(settings: LayoutSettings): void {
-  const paper = PAPER_PRESETS[settings.paper]
+  const paper = getPaperDimensionsCm(settings.paper, settings.orientation)
 
   elements.sheet.className = 'sheet is-empty'
   elements.sheet.innerHTML =
@@ -261,7 +312,7 @@ function renderEmptySheet(settings: LayoutSettings): void {
 
 function renderImageMode(): void {
   const settings = getSettingsFromControls()
-  syncPrintPageSize(settings.paper)
+  syncPrintPageSize(settings.paper, settings.orientation)
 
   if (!imageInfo) {
     renderEmptySheet(settings)
@@ -302,7 +353,7 @@ function renderImageMode(): void {
     `Rendering ${layout.renderedCount} card(s). ` +
     `Card size: ${layout.cardWidthCm.toFixed(2)} x ${layout.cardHeightCm.toFixed(
       2,
-    )} cm on ${paper.label}.`
+    )} cm on ${paper.label} ${settings.orientation}.`
 
   const warnings: string[] = []
 
@@ -374,6 +425,9 @@ function render(): void {
   } else {
     renderPdfMode()
   }
+
+  scheduleScrollCueUpdate()
+  scheduleScrollbarAccentUpdate()
 }
 
 function setMode(nextMode: AppMode): void {
@@ -382,7 +436,330 @@ function setMode(nextMode: AppMode): void {
   elements.pdfModePanel.hidden = nextMode !== 'pdf'
   elements.imageModeButton.classList.toggle('is-active', nextMode === 'image')
   elements.pdfModeButton.classList.toggle('is-active', nextMode === 'pdf')
+  elements.imageModeButton.setAttribute('aria-selected', String(nextMode === 'image'))
+  elements.pdfModeButton.setAttribute('aria-selected', String(nextMode === 'pdf'))
+  elements.imageModeButton.tabIndex = nextMode === 'image' ? 0 : -1
+  elements.pdfModeButton.tabIndex = nextMode === 'pdf' ? 0 : -1
   render()
+}
+
+function handleModeTabKeydown(event: KeyboardEvent): void {
+  if (
+    event.key !== 'ArrowLeft' &&
+    event.key !== 'ArrowRight' &&
+    event.key !== 'Home' &&
+    event.key !== 'End'
+  ) {
+    return
+  }
+
+  event.preventDefault()
+  const nextMode = event.key === 'ArrowLeft' || event.key === 'Home' ? 'image' : 'pdf'
+  setMode(nextMode)
+  const nextButton = nextMode === 'image' ? elements.imageModeButton : elements.pdfModeButton
+  nextButton.focus()
+}
+
+function swapInputValues(firstInput: HTMLInputElement, secondInput: HTMLInputElement): void {
+  const firstValue = firstInput.value
+  firstInput.value = secondInput.value
+  secondInput.value = firstValue
+}
+
+function handlePdfOrientationChange(): void {
+  swapInputValues(elements.pdfColumns, elements.pdfRows)
+  swapInputValues(elements.pdfCardWidthIn, elements.pdfCardHeightIn)
+  render()
+}
+
+function clampProgress(value: number): number {
+  return Math.min(1, Math.max(0, value))
+}
+
+function interpolateColor(start: readonly number[], end: readonly number[], progress: number): string {
+  const [red, green, blue] = start.map((channel, index) => {
+    const nextChannel = end[index] ?? channel
+    return Math.round(channel + (nextChannel - channel) * progress)
+  })
+
+  return `rgb(${red} ${green} ${blue})`
+}
+
+function getScrollbarColor(progress: number): string {
+  const clampedProgress = clampProgress(progress)
+
+  for (let index = 0; index < SCROLLBAR_COLOR_STOPS.length - 1; index += 1) {
+    const currentStop = SCROLLBAR_COLOR_STOPS[index]
+    const nextStop = SCROLLBAR_COLOR_STOPS[index + 1]
+
+    if (clampedProgress >= currentStop.progress && clampedProgress <= nextStop.progress) {
+      const localProgress = (clampedProgress - currentStop.progress) /
+        (nextStop.progress - currentStop.progress)
+
+      return interpolateColor(currentStop.color, nextStop.color, localProgress)
+    }
+  }
+
+  return interpolateColor(
+    SCROLLBAR_COLOR_STOPS[SCROLLBAR_COLOR_STOPS.length - 1].color,
+    SCROLLBAR_COLOR_STOPS[SCROLLBAR_COLOR_STOPS.length - 1].color,
+    1,
+  )
+}
+
+function updateScrollbarAccent(scroller: HTMLElement): void {
+  const maxVerticalScroll = scroller.scrollHeight - scroller.clientHeight
+  const maxHorizontalScroll = scroller.scrollWidth - scroller.clientWidth
+  const verticalProgress = maxVerticalScroll > 0 ? scroller.scrollTop / maxVerticalScroll : 0
+  const horizontalProgress = maxHorizontalScroll > 0 ? scroller.scrollLeft / maxHorizontalScroll : 0
+  const progress = maxVerticalScroll > 0 ? verticalProgress : horizontalProgress
+
+  scroller.style.setProperty('--scrollbar-thumb-color', getScrollbarColor(progress))
+}
+
+function updatePageScrollbarAccent(): void {
+  const maxScroll = document.documentElement.scrollHeight - window.innerHeight
+  const progress = maxScroll > 0 ? window.scrollY / maxScroll : 0
+  const color = getScrollbarColor(progress)
+
+  document.documentElement.style.setProperty('--scrollbar-thumb-color', color)
+  document.body.style.setProperty('--scrollbar-thumb-color', color)
+}
+
+function updateScrollbarAccents(): void {
+  updateScrollbarAccent(elements.previewScroll)
+  updateScrollbarAccent(elements.controls)
+  updatePageScrollbarAccent()
+}
+
+function scheduleScrollbarAccentUpdate(): void {
+  if (scrollbarFrame !== undefined) {
+    window.cancelAnimationFrame(scrollbarFrame)
+  }
+
+  scrollbarFrame = window.requestAnimationFrame(() => {
+    scrollbarFrame = undefined
+    updateScrollbarAccents()
+  })
+}
+
+function updateScrollCue(): void {
+  if (prefersReducedMotion()) {
+    elements.scrollCue.classList.add('is-hidden')
+    elements.scrollCue.classList.remove('is-ready')
+    return
+  }
+
+  const maxScroll = elements.previewScroll.scrollHeight - elements.previewScroll.clientHeight
+  const hasScrollableProof = maxScroll > 100
+
+  elements.scrollCue.classList.toggle('is-ready', hasScrollableProof)
+  elements.scrollCue.classList.toggle('is-hidden', !hasScrollableProof)
+
+  if (!hasScrollableProof) {
+    elements.scrollCue.style.setProperty('--scroll-progress', '0')
+    elements.scrollCue.classList.remove('is-faded')
+    return
+  }
+
+  const progress = Math.min(1, Math.max(0, elements.previewScroll.scrollTop / maxScroll))
+  elements.scrollCue.style.setProperty('--scroll-progress', String(progress))
+  elements.scrollCue.classList.toggle('is-faded', elements.previewScroll.scrollTop > 200)
+  scheduleScrollbarAccentUpdate()
+}
+
+function scheduleScrollCueUpdate(): void {
+  if (scrollCueFrame !== undefined) {
+    window.cancelAnimationFrame(scrollCueFrame)
+  }
+
+  scrollCueFrame = window.requestAnimationFrame(() => {
+    scrollCueFrame = undefined
+    updateScrollCue()
+  })
+}
+
+function updateGlowTargets(pointer: { x: number; y: number }): void {
+  const glowTargets = document.querySelectorAll<HTMLElement>('.hero-proof span')
+
+  glowTargets.forEach((target) => {
+    const rect = target.getBoundingClientRect()
+    const centerX = rect.left + rect.width / 2
+    const centerY = rect.top + rect.height / 2
+    const distance = Math.hypot(pointer.x - centerX, pointer.y - centerY)
+    const intensity = Math.max(0, 1 - distance / 140)
+
+    target.style.setProperty('--glow-intensity', intensity.toFixed(3))
+  })
+}
+
+function setupPointerPersonality(): void {
+  const resetPointerEffects = (): void => {
+    document.documentElement.style.removeProperty('--pointer-x')
+    document.documentElement.style.removeProperty('--pointer-y')
+    elements.previewArea.style.setProperty('--preview-glow', '0')
+
+    document
+      .querySelectorAll<HTMLElement>('.hero-proof span')
+      .forEach((target) => target.style.setProperty('--glow-intensity', '0'))
+  }
+
+  window.addEventListener(
+    'pointermove',
+    (event) => {
+      if (prefersReducedMotion()) {
+        return
+      }
+
+      pendingPointer = { x: event.clientX, y: event.clientY }
+
+      if (pointerFrame !== undefined) {
+        return
+      }
+
+      pointerFrame = window.requestAnimationFrame(() => {
+        pointerFrame = undefined
+
+        if (!pendingPointer) {
+          return
+        }
+
+        document.documentElement.style.setProperty('--pointer-x', `${pendingPointer.x}px`)
+        document.documentElement.style.setProperty('--pointer-y', `${pendingPointer.y}px`)
+        updateGlowTargets(pendingPointer)
+      })
+    },
+    { passive: true },
+  )
+
+  elements.previewArea.addEventListener(
+    'pointermove',
+    (event) => {
+      if (prefersReducedMotion()) {
+        return
+      }
+
+      const rect = elements.previewArea.getBoundingClientRect()
+      elements.previewArea.style.setProperty('--preview-x', `${event.clientX - rect.left}px`)
+      elements.previewArea.style.setProperty('--preview-y', `${event.clientY - rect.top}px`)
+      elements.previewArea.style.setProperty('--preview-glow', '1')
+    },
+    { passive: true },
+  )
+
+  elements.previewArea.addEventListener('pointerleave', () => {
+    elements.previewArea.style.setProperty('--preview-glow', '0')
+  })
+
+  REDUCED_MOTION_QUERY.addEventListener('change', () => {
+    if (prefersReducedMotion()) {
+      resetPointerEffects()
+    }
+
+    scheduleScrollCueUpdate()
+  })
+}
+
+function setupScrollCue(): void {
+  elements.previewScroll.addEventListener('scroll', () => {
+    scheduleScrollCueUpdate()
+    scheduleScrollbarAccentUpdate()
+  }, { passive: true })
+
+  elements.controls.addEventListener('scroll', scheduleScrollbarAccentUpdate, { passive: true })
+  window.addEventListener('scroll', scheduleScrollbarAccentUpdate, { passive: true })
+
+  window.addEventListener('resize', () => {
+    scheduleScrollCueUpdate()
+    scheduleScrollbarAccentUpdate()
+  }, { passive: true })
+
+  scheduleScrollCueUpdate()
+  scheduleScrollbarAccentUpdate()
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLSelectElement ||
+    target instanceof HTMLTextAreaElement ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  )
+}
+
+function normalizeShortcutKey(event: KeyboardEvent): string {
+  return event.key.length === 1 ? event.key.toLowerCase() : event.key
+}
+
+function syncEasterHint(): void {
+  elements.easterEggHint.classList.toggle(
+    'is-visible',
+    easterProgress >= 2 && !prefersReducedMotion(),
+  )
+}
+
+function triggerEasterEgg(): void {
+  if (easterTimeout !== undefined) {
+    window.clearTimeout(easterTimeout)
+  }
+
+  elements.easterEggOverlay.classList.add('is-active')
+  elements.easterEggOverlay.setAttribute('aria-hidden', 'false')
+
+  easterTimeout = window.setTimeout(() => {
+    elements.easterEggOverlay.classList.remove('is-active')
+    elements.easterEggOverlay.setAttribute('aria-hidden', 'true')
+    easterTimeout = undefined
+  }, 3000)
+}
+
+function setupEasterEgg(): void {
+  window.addEventListener('keydown', (event) => {
+    if (isEditableTarget(event.target)) {
+      return
+    }
+
+    const key = normalizeShortcutKey(event)
+    const expectedKey = KONAMI_KEYS[easterProgress]
+
+    if (key === expectedKey) {
+      easterProgress += 1
+
+      if (easterProgress === KONAMI_KEYS.length) {
+        easterProgress = 0
+        syncEasterHint()
+        triggerEasterEgg()
+        return
+      }
+
+      syncEasterHint()
+      return
+    }
+
+    easterProgress = key === KONAMI_KEYS[0] ? 1 : 0
+    syncEasterHint()
+  })
+}
+
+function setupRegistrationWheelShortcut(): void {
+  elements.registrationWheel.addEventListener('click', () => {
+    registrationTapCount += 1
+
+    if (registrationTapTimeout !== undefined) {
+      window.clearTimeout(registrationTapTimeout)
+    }
+
+    if (registrationTapCount >= 7) {
+      registrationTapCount = 0
+      triggerEasterEgg()
+      return
+    }
+
+    registrationTapTimeout = window.setTimeout(() => {
+      registrationTapCount = 0
+      registrationTapTimeout = undefined
+    }, 1800)
+  })
 }
 
 async function handleImageUpload(): Promise<void> {
@@ -453,12 +830,19 @@ function main(): void {
   )
 
   for (const control of controls) {
+    if (control === elements.pdfOrientation) {
+      continue
+    }
+
     control.addEventListener('input', render)
     control.addEventListener('change', render)
   }
 
   elements.imageModeButton.addEventListener('click', () => setMode('image'))
   elements.pdfModeButton.addEventListener('click', () => setMode('pdf'))
+  elements.imageModeButton.addEventListener('keydown', handleModeTabKeydown)
+  elements.pdfModeButton.addEventListener('keydown', handleModeTabKeydown)
+  elements.pdfOrientation.addEventListener('change', handlePdfOrientationChange)
 
   elements.imageUpload.addEventListener('change', () => {
     void handleImageUpload()
@@ -476,6 +860,10 @@ function main(): void {
     void generatePdf()
   })
 
+  setupPointerPersonality()
+  setupScrollCue()
+  setupEasterEgg()
+  setupRegistrationWheelShortcut()
   render()
 }
 
