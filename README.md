@@ -11,7 +11,7 @@ A small browser-based tool for arranging cards into print-ready grids on US Lett
 - Auto-fit grid
 - Optional target card count
 - Manual rows and columns
-- Adjustable margins and spacing
+- Printer-safe margin presets plus independent top/right/bottom/left margins
 - Optional light cut guides
 - Print or save as PDF from the browser
 - Multi-page PDF imposition mode using `pdf-lib`
@@ -49,6 +49,9 @@ npm run impose:pdf -- input.pdf output.pdf \
   --margin-y 0.25 \
   --marks crop-dotted
 ```
+
+Use `--margin-top`, `--margin-right`, `--margin-bottom`, and `--margin-left`
+when a printer needs asymmetric safe margins.
 
 Supported mark styles:
 

@@ -2,6 +2,7 @@ import type {
   ComputedLayout,
   ImageInfo,
   LayoutSettings,
+  PageMargins,
   PaperOrientation,
   PaperPreset,
   PaperPresetKey,
@@ -48,6 +49,15 @@ function normalizeGap(value: number): number {
   return value
 }
 
+function normalizeMargins(margins: PageMargins): PageMargins {
+  return {
+    top: normalizeGap(margins.top),
+    right: normalizeGap(margins.right),
+    bottom: normalizeGap(margins.bottom),
+    left: normalizeGap(margins.left),
+  }
+}
+
 function normalizeCount(value: number | undefined, fallback: number): number {
   if (!Number.isFinite(value) || value === undefined || value < 1) {
     return fallback
@@ -84,12 +94,12 @@ function computeCardSize(image: ImageInfo, cardLongSideCm: number): Pick<Compute
 
 export function computeLayout(image: ImageInfo, settings: LayoutSettings): ComputedLayout {
   const paper = getPaperDimensionsCm(settings.paper, settings.orientation)
-  const marginCm = normalizeGap(settings.marginCm)
+  const marginsCm = normalizeMargins(settings.marginsCm)
   const horizontalGapCm = normalizeGap(settings.horizontalGapCm)
   const verticalGapCm = normalizeGap(settings.verticalGapCm)
   const { cardWidthCm, cardHeightCm } = computeCardSize(image, settings.cardLongSideCm)
-  const availableWidthCm = paper.widthCm - marginCm * 2
-  const availableHeightCm = paper.heightCm - marginCm * 2
+  const availableWidthCm = paper.widthCm - marginsCm.left - marginsCm.right
+  const availableHeightCm = paper.heightCm - marginsCm.top - marginsCm.bottom
   const autoColumns = fitCount(availableWidthCm, cardWidthCm, horizontalGapCm)
   const autoRows = fitCount(availableHeightCm, cardHeightCm, verticalGapCm)
   const columns = normalizeCount(settings.manualColumns, autoColumns)
@@ -97,8 +107,8 @@ export function computeLayout(image: ImageInfo, settings: LayoutSettings): Compu
   const capacity = columns * rows
   const targetCardCount = normalizeCount(settings.targetCardCount, capacity)
   const renderedCount = Math.min(targetCardCount, capacity)
-  const usedWidthCm = columns * cardWidthCm + Math.max(0, columns - 1) * horizontalGapCm + marginCm * 2
-  const usedHeightCm = rows * cardHeightCm + Math.max(0, rows - 1) * verticalGapCm + marginCm * 2
+  const usedWidthCm = columns * cardWidthCm + Math.max(0, columns - 1) * horizontalGapCm + marginsCm.left + marginsCm.right
+  const usedHeightCm = rows * cardHeightCm + Math.max(0, rows - 1) * verticalGapCm + marginsCm.top + marginsCm.bottom
 
   return {
     pageWidthCm: paper.widthCm,

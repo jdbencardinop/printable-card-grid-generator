@@ -17,10 +17,17 @@ export interface PaperPreset {
   heightCm: number
 }
 
+export interface PageMargins {
+  top: number
+  right: number
+  bottom: number
+  left: number
+}
+
 export interface LayoutSettings {
   paper: PaperPresetKey
   orientation: PaperOrientation
-  marginCm: number
+  marginsCm: PageMargins
   horizontalGapCm: number
   verticalGapCm: number
   cardLongSideCm: number
@@ -58,8 +65,7 @@ export interface PdfImpositionSettings {
   cardHeightIn: number
   columns: number
   rows: number
-  marginXIn: number
-  marginYIn: number
+  marginsIn: PageMargins
   horizontalGapIn: number
   verticalGapIn: number
   cutGuideMode: CutGuideMode

@@ -15,8 +15,10 @@ const defaults = {
   cardHeightIn: 4,
   columns: 3,
   rows: 2,
-  marginXIn: 0.25,
-  marginYIn: 0.25,
+  marginTopIn: 0.25,
+  marginRightIn: 0.25,
+  marginBottomIn: 0.25,
+  marginLeftIn: 0.25,
   horizontalGapIn: 0,
   verticalGapIn: 0,
   marks: 'crop-dotted',
@@ -35,6 +37,10 @@ Options:
   --rows 2
   --margin-x 0.25
   --margin-y 0.25
+  --margin-top 0.25
+  --margin-right 0.25
+  --margin-bottom 0.25
+  --margin-left 0.25
   --gap-x 0
   --gap-y 0
   --marks none|crop|dotted|solid|crop-dotted|crop-solid
@@ -62,8 +68,16 @@ function readArgs(argv) {
     else if (key === '--card-height') settings.cardHeightIn = Number(value)
     else if (key === '--columns') settings.columns = Number(value)
     else if (key === '--rows') settings.rows = Number(value)
-    else if (key === '--margin-x') settings.marginXIn = Number(value)
-    else if (key === '--margin-y') settings.marginYIn = Number(value)
+    else if (key === '--margin-x') {
+      settings.marginLeftIn = Number(value)
+      settings.marginRightIn = Number(value)
+    } else if (key === '--margin-y') {
+      settings.marginTopIn = Number(value)
+      settings.marginBottomIn = Number(value)
+    } else if (key === '--margin-top') settings.marginTopIn = Number(value)
+    else if (key === '--margin-right') settings.marginRightIn = Number(value)
+    else if (key === '--margin-bottom') settings.marginBottomIn = Number(value)
+    else if (key === '--margin-left') settings.marginLeftIn = Number(value)
     else if (key === '--gap-x') settings.horizontalGapIn = Number(value)
     else if (key === '--gap-y') settings.verticalGapIn = Number(value)
     else if (key === '--marks') settings.marks = value
@@ -102,12 +116,16 @@ function validateSettings(settings) {
     throw new Error('--card-width and --card-height must be positive numbers')
   }
   if (
-    !Number.isFinite(settings.marginXIn) ||
-    !Number.isFinite(settings.marginYIn) ||
+    !Number.isFinite(settings.marginTopIn) ||
+    !Number.isFinite(settings.marginRightIn) ||
+    !Number.isFinite(settings.marginBottomIn) ||
+    !Number.isFinite(settings.marginLeftIn) ||
     !Number.isFinite(settings.horizontalGapIn) ||
     !Number.isFinite(settings.verticalGapIn) ||
-    settings.marginXIn < 0 ||
-    settings.marginYIn < 0 ||
+    settings.marginTopIn < 0 ||
+    settings.marginRightIn < 0 ||
+    settings.marginBottomIn < 0 ||
+    settings.marginLeftIn < 0 ||
     settings.horizontalGapIn < 0 ||
     settings.verticalGapIn < 0
   ) {
@@ -179,8 +197,8 @@ async function main() {
   const paper = getPaperSize(settings)
   const cardWidth = settings.cardWidthIn * INCH
   const cardHeight = settings.cardHeightIn * INCH
-  const marginX = settings.marginXIn * INCH
-  const marginY = settings.marginYIn * INCH
+  const marginTop = settings.marginTopIn * INCH
+  const marginLeft = settings.marginLeftIn * INCH
   const gapX = settings.horizontalGapIn * INCH
   const gapY = settings.verticalGapIn * INCH
   const capacity = settings.columns * settings.rows
@@ -196,8 +214,8 @@ async function main() {
     embeddedPages.forEach((embeddedPage, index) => {
       const column = index % settings.columns
       const row = Math.floor(index / settings.columns)
-      const x = marginX + column * (cardWidth + gapX)
-      const y = paper.height - marginY - (row + 1) * cardHeight - row * gapY
+      const x = marginLeft + column * (cardWidth + gapX)
+      const y = paper.height - marginTop - (row + 1) * cardHeight - row * gapY
       page.drawPage(embeddedPage, { x, y, width: cardWidth, height: cardHeight })
       drawGuides(page, x, y, cardWidth, cardHeight, settings.marks)
     })
