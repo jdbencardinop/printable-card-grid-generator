@@ -382,7 +382,28 @@ function setMode(nextMode: AppMode): void {
   elements.pdfModePanel.hidden = nextMode !== 'pdf'
   elements.imageModeButton.classList.toggle('is-active', nextMode === 'image')
   elements.pdfModeButton.classList.toggle('is-active', nextMode === 'pdf')
+  elements.imageModeButton.setAttribute('aria-selected', String(nextMode === 'image'))
+  elements.pdfModeButton.setAttribute('aria-selected', String(nextMode === 'pdf'))
+  elements.imageModeButton.tabIndex = nextMode === 'image' ? 0 : -1
+  elements.pdfModeButton.tabIndex = nextMode === 'pdf' ? 0 : -1
   render()
+}
+
+function handleModeTabKeydown(event: KeyboardEvent): void {
+  if (
+    event.key !== 'ArrowLeft' &&
+    event.key !== 'ArrowRight' &&
+    event.key !== 'Home' &&
+    event.key !== 'End'
+  ) {
+    return
+  }
+
+  event.preventDefault()
+  const nextMode = event.key === 'ArrowLeft' || event.key === 'Home' ? 'image' : 'pdf'
+  setMode(nextMode)
+  const nextButton = nextMode === 'image' ? elements.imageModeButton : elements.pdfModeButton
+  nextButton.focus()
 }
 
 async function handleImageUpload(): Promise<void> {
@@ -459,6 +480,8 @@ function main(): void {
 
   elements.imageModeButton.addEventListener('click', () => setMode('image'))
   elements.pdfModeButton.addEventListener('click', () => setMode('pdf'))
+  elements.imageModeButton.addEventListener('keydown', handleModeTabKeydown)
+  elements.pdfModeButton.addEventListener('keydown', handleModeTabKeydown)
 
   elements.imageUpload.addEventListener('change', () => {
     void handleImageUpload()

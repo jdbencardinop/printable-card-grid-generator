@@ -11,126 +11,186 @@
     <style id="printPageSize"></style>
   </head>
   <body>
+    <noscript>
+      <p class="noscript-warning">
+        Printable Card Grid Studio needs JavaScript enabled to calculate layouts and generate previews.
+      </p>
+    </noscript>
+
     <main class="app-shell">
       <section class="controls" aria-labelledby="appTitle">
         <div class="hero">
-          <p class="eyebrow">Print shop layout tool</p>
+          <div class="hero-kicker-row">
+            <p class="eyebrow">Print shop layout tool</p>
+            <span class="press-mark" aria-hidden="true"></span>
+          </div>
           <h1 id="appTitle">Printable Card Grid Studio</h1>
           <p>
             Compose repeat images or multi-page PDFs into precise print sheets.
             Built for actual-size output, crop marks, and clean production handoff.
           </p>
+          <div class="hero-proof" aria-label="Production capabilities">
+            <span>Actual size</span>
+            <span>SVG + PDF</span>
+            <span>Crop marks</span>
+          </div>
         </div>
 
         <div class="control-panel">
           <div class="mode-tabs" role="tablist" aria-label="Layout mode">
-            <button id="imageModeButton" class="mode-tab is-active" type="button">
+            <button
+              id="imageModeButton"
+              class="mode-tab is-active"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              aria-controls="imageModePanel"
+            >
               Repeat image
             </button>
-            <button id="pdfModeButton" class="mode-tab" type="button">
+            <button
+              id="pdfModeButton"
+              class="mode-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="pdfModePanel"
+              tabindex="-1"
+            >
               Multi-page PDF
             </button>
           </div>
 
-          <div id="imageModePanel">
-            <label class="file-control">
-              <span>Image</span>
-              <input
-                id="imageUpload"
-                type="file"
-                accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
-              />
-            </label>
-
-            <div class="image-preview" aria-live="polite">
-              <div class="image-preview-frame">
-                <span id="imagePlaceholder">PNG, JPG, JPEG, WEBP, or SVG</span>
-                <img id="imagePreview" alt="Uploaded image preview" hidden />
+          <div
+            id="imageModePanel"
+            class="mode-panel"
+            role="tabpanel"
+            aria-labelledby="imageModeButton"
+          >
+            <section class="panel-section panel-section-source" aria-labelledby="imageSourceTitle">
+              <div class="section-heading">
+                <p class="section-kicker">Step 1</p>
+                <h2 id="imageSourceTitle">Choose artwork</h2>
+                <p>Upload one source file; the studio repeats it into a press-ready proof.</p>
               </div>
-              <p id="imageMeta">No image selected.</p>
-            </div>
 
-            <div class="settings-grid">
-              <label>
-                <span>Paper size</span>
-                <select id="paper">
-                  <option value="letter" selected>US Letter</option>
-                  <option value="a4">A4</option>
-                </select>
-              </label>
-
-              <label>
-                <span>Card long side, cm</span>
+              <label class="file-control">
+                <span>Image</span>
                 <input
-                  id="cardLongSideCm"
-                  type="number"
-                  value="6.5"
-                  step="0.1"
-                  min="1"
+                  id="imageUpload"
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
                 />
               </label>
 
-              <label>
-                <span>Target card count</span>
-                <input
-                  id="targetCardCount"
-                  type="number"
-                  placeholder="Auto-fill"
-                  min="1"
-                />
-              </label>
+              <div class="image-preview" aria-live="polite">
+                <div class="image-preview-frame">
+                  <span id="imagePlaceholder">PNG, JPG, JPEG, WEBP, or SVG</span>
+                  <img id="imagePreview" alt="Uploaded image preview" hidden />
+                </div>
+                <p id="imageMeta">No image selected.</p>
+              </div>
+            </section>
 
-              <label>
-                <span>Manual columns</span>
-                <input id="manualColumns" type="number" placeholder="Auto" min="1" />
-              </label>
+            <section class="panel-section panel-section-layout" aria-labelledby="imageLayoutTitle">
+              <div class="section-heading">
+                <p class="section-kicker">Step 2</p>
+                <h2 id="imageLayoutTitle">Set the sheet geometry</h2>
+                <p>Pick the paper, card size, margins, and spacing used for the live proof.</p>
+              </div>
 
-              <label>
-                <span>Manual rows</span>
-                <input id="manualRows" type="number" placeholder="Auto" min="1" />
-              </label>
+              <div class="settings-grid">
+                <label>
+                  <span>Paper size</span>
+                  <select id="paper">
+                    <option value="letter" selected>US Letter</option>
+                    <option value="a4">A4</option>
+                  </select>
+                </label>
 
-              <label>
-                <span>Margin, cm</span>
-                <input id="marginCm" type="number" value="0.5" step="0.1" min="0" />
-              </label>
+                <label>
+                  <span>Card long side, cm</span>
+                  <input
+                    id="cardLongSideCm"
+                    type="number"
+                    value="6.5"
+                    step="0.1"
+                    min="1"
+                  />
+                </label>
 
-              <label>
-                <span>Horizontal gap, cm</span>
-                <input
-                  id="horizontalGapCm"
-                  type="number"
-                  value="0.5"
-                  step="0.1"
-                  min="0"
-                />
-              </label>
+                <label>
+                  <span>Target card count</span>
+                  <input
+                    id="targetCardCount"
+                    type="number"
+                    placeholder="Auto-fill"
+                    min="1"
+                  />
+                </label>
 
-              <label>
-                <span>Vertical gap, cm</span>
-                <input
-                  id="verticalGapCm"
-                  type="number"
-                  value="1.0"
-                  step="0.1"
-                  min="0"
-                />
-              </label>
+                <label>
+                  <span>Manual columns</span>
+                  <input id="manualColumns" type="number" placeholder="Auto" min="1" />
+                </label>
 
-              <label class="checkbox-control">
-                <input id="showCutGuides" type="checkbox" checked />
-                <span>Show cut guides</span>
-              </label>
+                <label>
+                  <span>Manual rows</span>
+                  <input id="manualRows" type="number" placeholder="Auto" min="1" />
+                </label>
 
-              <label>
-                <span>Guide style</span>
-                <select id="cutGuideMode">
-                  <option value="rectangle">Light rectangle</option>
-                  <option value="corners">Corner marks</option>
-                  <option value="both" selected>Both</option>
-                </select>
-              </label>
-            </div>
+                <label>
+                  <span>Margin, cm</span>
+                  <input id="marginCm" type="number" value="0.5" step="0.1" min="0" />
+                </label>
+
+                <label>
+                  <span>Horizontal gap, cm</span>
+                  <input
+                    id="horizontalGapCm"
+                    type="number"
+                    value="0.5"
+                    step="0.1"
+                    min="0"
+                  />
+                </label>
+
+                <label>
+                  <span>Vertical gap, cm</span>
+                  <input
+                    id="verticalGapCm"
+                    type="number"
+                    value="1.0"
+                    step="0.1"
+                    min="0"
+                  />
+                </label>
+              </div>
+            </section>
+
+            <section class="panel-section panel-section-guides" aria-labelledby="imageGuidesTitle">
+              <div class="section-heading">
+                <p class="section-kicker">Step 3</p>
+                <h2 id="imageGuidesTitle">Mark the cuts</h2>
+                <p>Keep guides subtle on screen and printable on paper.</p>
+              </div>
+
+              <div class="settings-grid guide-grid">
+                <label class="checkbox-control">
+                  <input id="showCutGuides" type="checkbox" checked />
+                  <span>Show cut guides</span>
+                </label>
+
+                <label>
+                  <span>Guide style</span>
+                  <select id="cutGuideMode">
+                    <option value="rectangle">Light rectangle</option>
+                    <option value="corners">Corner marks</option>
+                    <option value="both" selected>Both</option>
+                  </select>
+                </label>
+              </div>
+            </section>
 
             <div class="actions">
               <button id="printButton" type="button" disabled>
@@ -139,70 +199,100 @@
             </div>
           </div>
 
-          <div id="pdfModePanel" hidden>
-            <label class="file-control">
-              <span>Multi-page PDF</span>
-              <input id="pdfUpload" type="file" accept="application/pdf" />
-            </label>
+          <div
+            id="pdfModePanel"
+            class="mode-panel"
+            role="tabpanel"
+            aria-labelledby="pdfModeButton"
+            hidden
+          >
+            <section class="panel-section panel-section-source" aria-labelledby="pdfSourceTitle">
+              <div class="section-heading">
+                <p class="section-kicker">Step 1</p>
+                <h2 id="pdfSourceTitle">Choose a source PDF</h2>
+                <p>Each page becomes a card slot while keeping vector PDF detail intact.</p>
+              </div>
 
-            <p id="pdfMeta" class="summary">No PDF selected.</p>
-
-            <div class="settings-grid">
-              <label>
-                <span>Paper size</span>
-                <select id="pdfPaper">
-                  <option value="letter" selected>US Letter</option>
-                  <option value="a4">A4</option>
-                </select>
+              <label class="file-control">
+                <span>Multi-page PDF</span>
+                <input id="pdfUpload" type="file" accept="application/pdf" />
               </label>
 
-              <label>
-                <span>Orientation</span>
-                <select id="pdfOrientation">
-                  <option value="landscape" selected>Landscape</option>
-                  <option value="portrait">Portrait</option>
-                </select>
-              </label>
+              <p id="pdfMeta" class="summary">No PDF selected.</p>
+            </section>
 
-              <label>
-                <span>Card width, in</span>
-                <input id="pdfCardWidthIn" type="number" value="3.5" step="0.125" min="0.25" />
-              </label>
+            <section class="panel-section panel-section-layout" aria-labelledby="pdfLayoutTitle">
+              <div class="section-heading">
+                <p class="section-kicker">Step 2</p>
+                <h2 id="pdfLayoutTitle">Impose the sheet</h2>
+                <p>Define the output paper and the card slots before generating a new PDF.</p>
+              </div>
 
-              <label>
-                <span>Card height, in</span>
-                <input id="pdfCardHeightIn" type="number" value="4" step="0.125" min="0.25" />
-              </label>
+              <div class="settings-grid">
+                <label>
+                  <span>Paper size</span>
+                  <select id="pdfPaper">
+                    <option value="letter" selected>US Letter</option>
+                    <option value="a4">A4</option>
+                  </select>
+                </label>
 
-              <label>
-                <span>Columns</span>
-                <input id="pdfColumns" type="number" value="3" min="1" />
-              </label>
+                <label>
+                  <span>Orientation</span>
+                  <select id="pdfOrientation">
+                    <option value="landscape" selected>Landscape</option>
+                    <option value="portrait">Portrait</option>
+                  </select>
+                </label>
 
-              <label>
-                <span>Rows</span>
-                <input id="pdfRows" type="number" value="2" min="1" />
-              </label>
+                <label>
+                  <span>Card width, in</span>
+                  <input id="pdfCardWidthIn" type="number" value="3.5" step="0.125" min="0.25" />
+                </label>
 
-              <label>
-                <span>Horizontal margin, in</span>
-                <input id="pdfMarginXIn" type="number" value="0.25" step="0.05" min="0" />
-              </label>
+                <label>
+                  <span>Card height, in</span>
+                  <input id="pdfCardHeightIn" type="number" value="4" step="0.125" min="0.25" />
+                </label>
 
-              <label>
-                <span>Vertical margin, in</span>
-                <input id="pdfMarginYIn" type="number" value="0.25" step="0.05" min="0" />
-              </label>
+                <label>
+                  <span>Columns</span>
+                  <input id="pdfColumns" type="number" value="3" min="1" />
+                </label>
 
-              <label>
-                <span>Horizontal gap, in</span>
-                <input id="pdfGapXIn" type="number" value="0" step="0.05" min="0" />
-              </label>
+                <label>
+                  <span>Rows</span>
+                  <input id="pdfRows" type="number" value="2" min="1" />
+                </label>
 
-              <label>
-                <span>Vertical gap, in</span>
-                <input id="pdfGapYIn" type="number" value="0" step="0.05" min="0" />
-              </label>
+                <label>
+                  <span>Horizontal margin, in</span>
+                  <input id="pdfMarginXIn" type="number" value="0.25" step="0.05" min="0" />
+                </label>
+
+                <label>
+                  <span>Vertical margin, in</span>
+                  <input id="pdfMarginYIn" type="number" value="0.25" step="0.05" min="0" />
+                </label>
+
+                <label>
+                  <span>Horizontal gap, in</span>
+                  <input id="pdfGapXIn" type="number" value="0" step="0.05" min="0" />
+                </label>
+
+                <label>
+                  <span>Vertical gap, in</span>
+                  <input id="pdfGapYIn" type="number" value="0" step="0.05" min="0" />
+                </label>
+              </div>
+            </section>
+
+            <section class="panel-section panel-section-guides" aria-labelledby="pdfGuidesTitle">
+              <div class="section-heading">
+                <p class="section-kicker">Step 3</p>
+                <h2 id="pdfGuidesTitle">Choose guide treatment</h2>
+                <p>Use crop marks, boxes, or a combined proof depending on your cutter.</p>
+              </div>
 
               <label>
                 <span>Guide style</span>
@@ -215,7 +305,7 @@
                   <option value="crop-solid">Crop marks + solid boxes</option>
                 </select>
               </label>
-            </div>
+            </section>
 
             <div class="actions">
               <button id="generatePdfButton" type="button" disabled>
@@ -224,14 +314,26 @@
             </div>
           </div>
 
-          <p id="summary" class="summary">Upload an image to build a sheet.</p>
-          <p id="warning" class="warning" role="status" hidden></p>
+          <div class="output-stack" aria-live="polite">
+            <p id="summary" class="summary">Upload an image to build a sheet.</p>
+            <p id="warning" class="warning" role="status" hidden></p>
+          </div>
         </div>
       </section>
 
       <section class="preview-area" aria-label="Printable sheet preview">
-        <div id="sheet" class="sheet is-empty">
-          <p class="empty-state">Upload an image to preview the printable sheet.</p>
+        <div class="preview-chrome">
+          <div>
+            <p class="eyebrow">Live proof</p>
+            <h2>Sheet preview</h2>
+          </div>
+          <p>Actual-size canvas. Scroll to inspect the full printable sheet.</p>
+        </div>
+
+        <div class="preview-scroll">
+          <div id="sheet" class="sheet is-empty">
+            <p class="empty-state">Upload an image to preview the printable sheet.</p>
+          </div>
         </div>
       </section>
     </main>
