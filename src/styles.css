@@ -50,7 +50,8 @@ body {
 html,
 body {
   --scrollbar-thumb-color: var(--ink);
-  scrollbar-color: var(--scrollbar-thumb-color) rgba(255, 250, 240, 0.5);
+  --scrollbar-track-color: #f0dfc7;
+  scrollbar-color: var(--scrollbar-thumb-color) var(--scrollbar-track-color);
   scrollbar-width: thin;
 }
 
@@ -195,7 +196,8 @@ p {
   position: sticky;
   top: 1rem;
   --scrollbar-thumb-color: var(--ink);
-  scrollbar-color: var(--scrollbar-thumb-color) rgba(255, 250, 240, 0.5);
+  --scrollbar-track-color: #f0dfc7;
+  scrollbar-color: var(--scrollbar-thumb-color) var(--scrollbar-track-color);
   scrollbar-width: thin;
   scrollbar-gutter: stable;
 }
@@ -213,16 +215,14 @@ body::-webkit-scrollbar-track,
 .controls::-webkit-scrollbar-track,
 .preview-scroll::-webkit-scrollbar-track {
   border-radius: 999px;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.36)),
-    rgba(255, 250, 240, 0.5);
+  background: var(--scrollbar-track-color);
 }
 
 html::-webkit-scrollbar-thumb,
 body::-webkit-scrollbar-thumb,
 .controls::-webkit-scrollbar-thumb,
 .preview-scroll::-webkit-scrollbar-thumb {
-  border: 3px solid rgba(255, 250, 240, 0.68);
+  border: 3px solid var(--scrollbar-track-color);
   border-radius: 999px;
   background-color: var(--scrollbar-thumb-color, var(--ink));
   background-clip: padding-box;
@@ -233,7 +233,7 @@ html::-webkit-scrollbar-corner,
 body::-webkit-scrollbar-corner,
 .controls::-webkit-scrollbar-corner,
 .preview-scroll::-webkit-scrollbar-corner {
-  background: rgba(255, 250, 240, 0.5);
+  background: var(--scrollbar-track-color);
 }
 
 .hero {
@@ -266,43 +266,19 @@ body::-webkit-scrollbar-corner,
 
 .registration-wheel {
   position: absolute;
+  display: block;
   top: 1rem;
   right: 1rem;
   width: 3.4rem;
   height: 3.4rem;
-  min-height: 0;
   border-top: 3px solid var(--cyan);
   border-right: 3px solid var(--magenta);
   border-bottom: 3px solid var(--yellow);
   border-left: 3px solid var(--ink);
   border-radius: 50%;
-  padding: 0;
-  color: transparent;
   background: transparent;
-  box-shadow: none;
   cursor: default;
   opacity: 0.76;
-}
-
-.registration-wheel:not(:disabled):hover,
-.registration-wheel:not(:disabled):active {
-  border-color: currentColor;
-  border-top-color: var(--cyan);
-  border-right-color: var(--magenta);
-  border-bottom-color: var(--yellow);
-  border-left-color: var(--ink);
-  box-shadow: none;
-  transform: none;
-}
-
-.registration-wheel:focus-visible {
-  border-top-color: var(--cyan);
-  border-right-color: var(--magenta);
-  border-bottom-color: var(--yellow);
-  border-left-color: var(--ink);
-  outline: 3px solid rgba(15, 111, 255, 0.24);
-  outline-offset: 3px;
-  box-shadow: none;
 }
 
 .hero-kicker-row {
@@ -697,7 +673,8 @@ input[type="file"]::file-selector-button {
   overflow: auto;
   padding: clamp(1rem, 3vw, 2rem);
   --scrollbar-thumb-color: var(--ink);
-  scrollbar-color: var(--scrollbar-thumb-color) rgba(255, 250, 240, 0.38);
+  --scrollbar-track-color: #e7d4b9;
+  scrollbar-color: var(--scrollbar-thumb-color) var(--scrollbar-track-color);
   scrollbar-width: thin;
 }
 

@@ -46,12 +46,12 @@ const KONAMI_KEYS = [
 const SCROLLBAR_COLOR_STOPS = [
   { progress: 0, color: [33, 24, 20] },
   { progress: 0.25, color: [33, 24, 20] },
-  { progress: 0.26, color: [22, 189, 213] },
-  { progress: 0.5, color: [22, 189, 213] },
-  { progress: 0.51, color: [216, 58, 117] },
-  { progress: 0.75, color: [216, 58, 117] },
-  { progress: 0.76, color: [224, 173, 40] },
-  { progress: 1, color: [224, 173, 40] },
+  { progress: 0.26, color: [0, 111, 128] },
+  { progress: 0.5, color: [0, 111, 128] },
+  { progress: 0.51, color: [157, 23, 77] },
+  { progress: 0.75, color: [157, 23, 77] },
+  { progress: 0.76, color: [122, 82, 0] },
+  { progress: 1, color: [122, 82, 0] },
 ] as const
 
 type AppMode = 'image' | 'pdf'
@@ -122,7 +122,7 @@ const elements = {
   scrollCue: query<HTMLDivElement>('#scrollCue'),
   easterEggOverlay: query<HTMLDivElement>('#easterEggOverlay'),
   easterEggHint: query<HTMLSpanElement>('#easterEggHint'),
-  registrationWheel: query<HTMLButtonElement>('#registrationWheel'),
+  registrationWheel: query<HTMLElement>('#registrationWheel'),
   printPageSize: query<HTMLStyleElement>('#printPageSize'),
 }
 
