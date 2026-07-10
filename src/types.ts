@@ -19,6 +19,7 @@ export interface PaperPreset {
 
 export interface LayoutSettings {
   paper: PaperPresetKey
+  orientation: PaperOrientation
   marginCm: number
   horizontalGapCm: number
   verticalGapCm: number

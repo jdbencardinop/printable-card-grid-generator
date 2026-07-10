@@ -1,4 +1,11 @@
-import type { ComputedLayout, ImageInfo, LayoutSettings, PaperPreset, PaperPresetKey } from './types'
+import type {
+  ComputedLayout,
+  ImageInfo,
+  LayoutSettings,
+  PaperOrientation,
+  PaperPreset,
+  PaperPresetKey,
+} from './types'
 
 export const PAPER_PRESETS: Record<PaperPresetKey, PaperPreset> = {
   letter: {
@@ -14,6 +21,16 @@ export const PAPER_PRESETS: Record<PaperPresetKey, PaperPreset> = {
 }
 
 const EPSILON_CM = 0.001
+
+export function getPaperDimensionsCm(
+  paper: PaperPresetKey,
+  orientation: PaperOrientation,
+): Pick<PaperPreset, 'widthCm' | 'heightCm'> {
+  const size = PAPER_PRESETS[paper]
+  return orientation === 'landscape'
+    ? { widthCm: size.heightCm, heightCm: size.widthCm }
+    : size
+}
 
 function clampDimension(value: number, fallback: number): number {
   if (!Number.isFinite(value) || value <= 0) {
@@ -66,7 +83,7 @@ function computeCardSize(image: ImageInfo, cardLongSideCm: number): Pick<Compute
 }
 
 export function computeLayout(image: ImageInfo, settings: LayoutSettings): ComputedLayout {
-  const paper = PAPER_PRESETS[settings.paper]
+  const paper = getPaperDimensionsCm(settings.paper, settings.orientation)
   const marginCm = normalizeGap(settings.marginCm)
   const horizontalGapCm = normalizeGap(settings.horizontalGapCm)
   const verticalGapCm = normalizeGap(settings.verticalGapCm)

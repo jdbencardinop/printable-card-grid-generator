@@ -1,5 +1,5 @@
 import { PDFDocument } from 'pdf-lib'
-import { PAPER_PRESETS, computeLayout } from './layout'
+import { PAPER_PRESETS, computeLayout, getPaperDimensionsCm } from './layout'
 import { computePdfCapacity, getPaperSizePoints, imposePdf } from './pdfImposition'
 import './styles.css'
 import type {
@@ -53,6 +53,8 @@ let pointerFrame: number | undefined
 let pendingPointer: { x: number; y: number } | null = null
 let easterProgress = 0
 let easterTimeout: number | undefined
+let registrationTapCount = 0
+let registrationTapTimeout: number | undefined
 
 function query<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector)
@@ -70,6 +72,7 @@ const elements = {
   imageModePanel: query<HTMLDivElement>('#imageModePanel'),
   pdfModePanel: query<HTMLDivElement>('#pdfModePanel'),
   paper: query<HTMLSelectElement>('#paper'),
+  paperOrientation: query<HTMLSelectElement>('#paperOrientation'),
   imageUpload: query<HTMLInputElement>('#imageUpload'),
   imagePreview: query<HTMLImageElement>('#imagePreview'),
   imagePlaceholder: query<HTMLSpanElement>('#imagePlaceholder'),
@@ -106,6 +109,7 @@ const elements = {
   scrollCue: query<HTMLDivElement>('#scrollCue'),
   easterEggOverlay: query<HTMLDivElement>('#easterEggOverlay'),
   easterEggHint: query<HTMLSpanElement>('#easterEggHint'),
+  registrationWheel: query<HTMLButtonElement>('#registrationWheel'),
   printPageSize: query<HTMLStyleElement>('#printPageSize'),
 }
 
@@ -210,10 +214,15 @@ async function readPdfFile(file: File): Promise<{ bytes: Uint8Array; pageCount: 
 
 function getSettingsFromControls(): LayoutSettings {
   const paperValue = elements.paper.value
+  const orientationValue = elements.paperOrientation.value
   const guideModeValue = elements.cutGuideMode.value
 
   if (!isPaperPresetKey(paperValue)) {
     throw new Error(`Unsupported paper preset: ${paperValue}`)
+  }
+
+  if (!isPaperOrientation(orientationValue)) {
+    throw new Error(`Unsupported paper orientation: ${orientationValue}`)
   }
 
   if (!isCutGuideMode(guideModeValue)) {
@@ -222,6 +231,7 @@ function getSettingsFromControls(): LayoutSettings {
 
   return {
     paper: paperValue,
+    orientation: orientationValue,
     marginCm: readRequiredNumber(elements.marginCm, 0.5),
     horizontalGapCm: readRequiredNumber(elements.horizontalGapCm, 0.5),
     verticalGapCm: readRequiredNumber(elements.verticalGapCm, 1),
@@ -263,9 +273,9 @@ function getPdfSettingsFromControls(): PdfImpositionSettings {
   }
 }
 
-function syncPrintPageSize(paper: PaperPresetKey): void {
+function syncPrintPageSize(paper: PaperPresetKey, orientation: PaperOrientation): void {
   const pageSize = paper === 'a4' ? 'A4' : 'letter'
-  elements.printPageSize.textContent = `@page { size: ${pageSize} portrait; margin: 0; }`
+  elements.printPageSize.textContent = `@page { size: ${pageSize} ${orientation}; margin: 0; }`
 }
 
 function setWarning(message: string | null): void {
@@ -274,7 +284,7 @@ function setWarning(message: string | null): void {
 }
 
 function renderEmptySheet(settings: LayoutSettings): void {
-  const paper = PAPER_PRESETS[settings.paper]
+  const paper = getPaperDimensionsCm(settings.paper, settings.orientation)
 
   elements.sheet.className = 'sheet is-empty'
   elements.sheet.innerHTML =
@@ -289,7 +299,7 @@ function renderEmptySheet(settings: LayoutSettings): void {
 
 function renderImageMode(): void {
   const settings = getSettingsFromControls()
-  syncPrintPageSize(settings.paper)
+  syncPrintPageSize(settings.paper, settings.orientation)
 
   if (!imageInfo) {
     renderEmptySheet(settings)
@@ -330,7 +340,7 @@ function renderImageMode(): void {
     `Rendering ${layout.renderedCount} card(s). ` +
     `Card size: ${layout.cardWidthCm.toFixed(2)} x ${layout.cardHeightCm.toFixed(
       2,
-    )} cm on ${paper.label}.`
+    )} cm on ${paper.label} ${settings.orientation}.`
 
   const warnings: string[] = []
 
@@ -621,6 +631,27 @@ function setupEasterEgg(): void {
   })
 }
 
+function setupRegistrationWheelShortcut(): void {
+  elements.registrationWheel.addEventListener('click', () => {
+    registrationTapCount += 1
+
+    if (registrationTapTimeout !== undefined) {
+      window.clearTimeout(registrationTapTimeout)
+    }
+
+    if (registrationTapCount >= 7) {
+      registrationTapCount = 0
+      triggerEasterEgg()
+      return
+    }
+
+    registrationTapTimeout = window.setTimeout(() => {
+      registrationTapCount = 0
+      registrationTapTimeout = undefined
+    }, 1800)
+  })
+}
+
 async function handleImageUpload(): Promise<void> {
   const file = elements.imageUpload.files?.[0]
 
@@ -717,6 +748,7 @@ function main(): void {
   setupPointerPersonality()
   setupScrollCue()
   setupEasterEgg()
+  setupRegistrationWheelShortcut()
   render()
 }
 

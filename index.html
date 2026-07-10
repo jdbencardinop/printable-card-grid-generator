@@ -24,6 +24,12 @@
             <p class="eyebrow">Print shop layout tool</p>
             <span class="press-mark" aria-hidden="true"></span>
           </div>
+          <button
+            id="registrationWheel"
+            class="registration-wheel"
+            type="button"
+            aria-label="Registration mark"
+          ></button>
           <h1 id="appTitle">Printable Card Grid Studio</h1>
           <p>
             Compose repeat images or multi-page PDFs into precise print sheets.
@@ -105,6 +111,14 @@
                   <select id="paper">
                     <option value="letter" selected>US Letter</option>
                     <option value="a4">A4</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Preview orientation</span>
+                  <select id="paperOrientation">
+                    <option value="portrait" selected>Portrait</option>
+                    <option value="landscape">Landscape</option>
                   </select>
                 </label>
 
