@@ -436,32 +436,6 @@ function handleModeTabKeydown(event: KeyboardEvent): void {
   nextButton.focus()
 }
 
-function setupReveals(): void {
-  document.documentElement.classList.add('js')
-  const revealElements = document.querySelectorAll<HTMLElement>('.reveal')
-
-  if (prefersReducedMotion() || !('IntersectionObserver' in window)) {
-    revealElements.forEach((element) => element.classList.add('is-visible'))
-    return
-  }
-
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) {
-          return
-        }
-
-        entry.target.classList.add('is-visible')
-        observer.unobserve(entry.target)
-      })
-    },
-    { threshold: 0.15 },
-  )
-
-  revealElements.forEach((element) => observer.observe(element))
-}
-
 function updateScrollCue(): void {
   if (prefersReducedMotion()) {
     elements.scrollCue.classList.add('is-hidden')
@@ -740,7 +714,6 @@ function main(): void {
     void generatePdf()
   })
 
-  setupReveals()
   setupPointerPersonality()
   setupScrollCue()
   setupEasterEgg()
