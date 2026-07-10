@@ -550,24 +550,6 @@ input[type="file"]::file-selector-button {
 }
 
 .panel-section-layout .settings-grid label:first-child,
-.guide-grid,
-.guide-grid label {
-  grid-column: 1 / -1;
-}
-
-.checkbox-control {
-  display: flex;
-  gap: 0.65rem;
-  align-items: center;
-  min-height: 44px;
-}
-
-.checkbox-control input {
-  width: 1.15rem;
-  height: 1.15rem;
-  accent-color: var(--press-blue);
-}
-
 .actions {
   display: flex;
 }
@@ -796,7 +778,8 @@ input[type="file"]::file-selector-button {
 }
 
 .card.guide-rectangle::after,
-.card.guide-both::after {
+.card.guide-both::after,
+.card.guide-crop-solid::after {
   position: absolute;
   inset: 0;
   border: 0.25pt solid rgba(0, 0, 0, 0.28);
@@ -804,8 +787,19 @@ input[type="file"]::file-selector-button {
   pointer-events: none;
 }
 
+.card.guide-dotted::after,
+.card.guide-crop-dotted::after {
+  position: absolute;
+  inset: 0;
+  border: 0.35pt dashed rgba(0, 0, 0, 0.32);
+  content: "";
+  pointer-events: none;
+}
+
 .card.guide-corners::before,
-.card.guide-both::before {
+.card.guide-both::before,
+.card.guide-crop-dotted::before,
+.card.guide-crop-solid::before {
   position: absolute;
   inset: -0.12cm;
   background:

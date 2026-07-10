@@ -12,11 +12,10 @@ A small browser-based tool for arranging cards into print-ready grids on US Lett
 - Optional target card count
 - Manual rows and columns
 - Adjustable margins and spacing
-- Optional light cut guides
+- Optional guide variants: none, crop marks, dotted boxes, solid boxes, crop + dotted, crop + solid
 - Print or save as PDF from the browser
 - Multi-page PDF imposition mode using `pdf-lib`
 - Preserve vector PDF quality when laying out PDF pages
-- PDF guide variants: none, crop marks, dotted boxes, solid boxes, crop + dotted, crop + solid
 - Standalone local PDF imposition script
 
 ## Development
