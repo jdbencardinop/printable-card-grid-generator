@@ -446,6 +446,18 @@ function handleModeTabKeydown(event: KeyboardEvent): void {
   nextButton.focus()
 }
 
+function swapInputValues(firstInput: HTMLInputElement, secondInput: HTMLInputElement): void {
+  const firstValue = firstInput.value
+  firstInput.value = secondInput.value
+  secondInput.value = firstValue
+}
+
+function handlePdfOrientationChange(): void {
+  swapInputValues(elements.pdfColumns, elements.pdfRows)
+  swapInputValues(elements.pdfCardWidthIn, elements.pdfCardHeightIn)
+  render()
+}
+
 function updateScrollCue(): void {
   if (prefersReducedMotion()) {
     elements.scrollCue.classList.add('is-hidden')
@@ -720,6 +732,10 @@ function main(): void {
   )
 
   for (const control of controls) {
+    if (control === elements.pdfOrientation) {
+      continue
+    }
+
     control.addEventListener('input', render)
     control.addEventListener('change', render)
   }
@@ -728,6 +744,7 @@ function main(): void {
   elements.pdfModeButton.addEventListener('click', () => setMode('pdf'))
   elements.imageModeButton.addEventListener('keydown', handleModeTabKeydown)
   elements.pdfModeButton.addEventListener('keydown', handleModeTabKeydown)
+  elements.pdfOrientation.addEventListener('change', handlePdfOrientationChange)
 
   elements.imageUpload.addEventListener('change', () => {
     void handleImageUpload()
