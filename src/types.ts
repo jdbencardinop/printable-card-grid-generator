@@ -1,6 +1,15 @@
 export type PaperPresetKey = 'letter' | 'a4'
 
-export type CutGuideMode = 'none' | 'rectangle' | 'corners' | 'both'
+export type PaperOrientation = 'portrait' | 'landscape'
+
+export type CutGuideMode =
+  | 'none'
+  | 'rectangle'
+  | 'corners'
+  | 'both'
+  | 'dotted'
+  | 'crop-dotted'
+  | 'crop-solid'
 
 export interface PaperPreset {
   label: string
@@ -39,4 +48,18 @@ export interface ComputedLayout {
   usedWidthCm: number
   usedHeightCm: number
   fitsPage: boolean
+}
+
+export interface PdfImpositionSettings {
+  paper: PaperPresetKey
+  orientation: PaperOrientation
+  cardWidthIn: number
+  cardHeightIn: number
+  columns: number
+  rows: number
+  marginXIn: number
+  marginYIn: number
+  horizontalGapIn: number
+  verticalGapIn: number
+  cutGuideMode: CutGuideMode
 }
