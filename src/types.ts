@@ -11,6 +11,8 @@ export type CutGuideMode =
   | 'crop-dotted'
   | 'crop-solid'
 
+export type PdfResizeMode = 'stretch' | 'fit' | 'fill' | 'center'
+
 export interface PaperPreset {
   label: string
   widthCm: number
@@ -63,4 +65,10 @@ export interface PdfImpositionSettings {
   horizontalGapIn: number
   verticalGapIn: number
   cutGuideMode: CutGuideMode
+}
+
+export interface PdfResizeSettings {
+  paper: PaperPresetKey
+  orientation: PaperOrientation
+  mode: PdfResizeMode
 }

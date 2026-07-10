@@ -1,6 +1,7 @@
 import { PDFDocument } from 'pdf-lib'
 import { PAPER_PRESETS, computeLayout, getPaperDimensionsCm } from './layout'
 import { computePdfCapacity, getPaperSizePoints, imposePdf } from './pdfImposition'
+import { resizePdfPages } from './pdfResize'
 import './styles.css'
 import type {
   CutGuideMode,
@@ -9,6 +10,8 @@ import type {
   PaperOrientation,
   PaperPresetKey,
   PdfImpositionSettings,
+  PdfResizeMode,
+  PdfResizeSettings,
 } from './types'
 
 const SUPPORTED_IMAGE_TYPES = new Set([
@@ -27,6 +30,13 @@ const CUT_GUIDE_MODES: readonly CutGuideMode[] = [
   'dotted',
   'crop-dotted',
   'crop-solid',
+]
+
+const PDF_RESIZE_MODES: readonly PdfResizeMode[] = [
+  'stretch',
+  'fit',
+  'fill',
+  'center',
 ]
 
 const REDUCED_MOTION_QUERY = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -54,11 +64,12 @@ const SCROLLBAR_COLOR_STOPS = [
   { progress: 1, color: [122, 82, 0] },
 ] as const
 
-type AppMode = 'image' | 'pdf'
+type AppMode = 'image' | 'pdf' | 'resize'
 
 let appMode: AppMode = 'image'
 let imageInfo: ImageInfo | null = null
 let pdfInfo: { bytes: Uint8Array; pageCount: number; name: string } | null = null
+let resizePdfInfo: { bytes: Uint8Array; pageCount: number; name: string } | null = null
 let scrollCueFrame: number | undefined
 let scrollbarFrame: number | undefined
 let pointerFrame: number | undefined
@@ -81,9 +92,11 @@ function query<T extends Element>(selector: string): T {
 const elements = {
   imageModeButton: query<HTMLButtonElement>('#imageModeButton'),
   pdfModeButton: query<HTMLButtonElement>('#pdfModeButton'),
+  resizeModeButton: query<HTMLButtonElement>('#resizeModeButton'),
   controls: query<HTMLElement>('.controls'),
   imageModePanel: query<HTMLDivElement>('#imageModePanel'),
   pdfModePanel: query<HTMLDivElement>('#pdfModePanel'),
+  resizeModePanel: query<HTMLDivElement>('#resizeModePanel'),
   paper: query<HTMLSelectElement>('#paper'),
   paperOrientation: query<HTMLSelectElement>('#paperOrientation'),
   imageUpload: query<HTMLInputElement>('#imageUpload'),
@@ -114,6 +127,12 @@ const elements = {
   pdfGapYIn: query<HTMLInputElement>('#pdfGapYIn'),
   pdfCutGuideMode: query<HTMLSelectElement>('#pdfCutGuideMode'),
   generatePdfButton: query<HTMLButtonElement>('#generatePdfButton'),
+  resizePdfUpload: query<HTMLInputElement>('#resizePdfUpload'),
+  resizePdfMeta: query<HTMLParagraphElement>('#resizePdfMeta'),
+  resizePaper: query<HTMLSelectElement>('#resizePaper'),
+  resizeOrientation: query<HTMLSelectElement>('#resizeOrientation'),
+  resizeMode: query<HTMLSelectElement>('#resizeMode'),
+  generateResizedPdfButton: query<HTMLButtonElement>('#generateResizedPdfButton'),
   sheet: query<HTMLDivElement>('#sheet'),
   summary: query<HTMLParagraphElement>('#summary'),
   warning: query<HTMLParagraphElement>('#warning'),
@@ -140,6 +159,10 @@ function isPaperOrientation(value: string): value is PaperOrientation {
 
 function isCutGuideMode(value: string): value is CutGuideMode {
   return CUT_GUIDE_MODES.includes(value as CutGuideMode)
+}
+
+function isPdfResizeMode(value: string): value is PdfResizeMode {
+  return PDF_RESIZE_MODES.includes(value as PdfResizeMode)
 }
 
 function readRequiredNumber(input: HTMLInputElement, fallback: number): number {
@@ -286,6 +309,28 @@ function getPdfSettingsFromControls(): PdfImpositionSettings {
   }
 }
 
+function getPdfResizeSettingsFromControls(): PdfResizeSettings {
+  const paperValue = elements.resizePaper.value
+  const orientationValue = elements.resizeOrientation.value
+  const modeValue = elements.resizeMode.value
+
+  if (!isPaperPresetKey(paperValue)) {
+    throw new Error(`Unsupported resize paper preset: ${paperValue}`)
+  }
+  if (!isPaperOrientation(orientationValue)) {
+    throw new Error(`Unsupported resize paper orientation: ${orientationValue}`)
+  }
+  if (!isPdfResizeMode(modeValue)) {
+    throw new Error(`Unsupported resize mode: ${modeValue}`)
+  }
+
+  return {
+    paper: paperValue,
+    orientation: orientationValue,
+    mode: modeValue,
+  }
+}
+
 function syncPrintPageSize(paper: PaperPresetKey, orientation: PaperOrientation): void {
   const pageSize = paper === 'a4' ? 'A4' : 'letter'
   elements.printPageSize.textContent = `@page { size: ${pageSize} ${orientation}; margin: 0; }`
@@ -419,11 +464,47 @@ function renderPdfMode(): void {
   setWarning(warnings.length > 0 ? warnings.join(' ') : null)
 }
 
+function renderResizeMode(): void {
+  const settings = getPdfResizeSettingsFromControls()
+  const pageSize = getPaperSizePoints(settings.paper, settings.orientation)
+  const pageWidthIn = pageSize.width / 72
+  const pageHeightIn = pageSize.height / 72
+  const paper = PAPER_PRESETS[settings.paper]
+
+  elements.sheet.className = 'sheet pdf-sheet'
+  elements.sheet.innerHTML = ''
+  elements.sheet.style.setProperty('--page-width-cm', `${pageWidthIn * 2.54}cm`)
+  elements.sheet.style.setProperty('--page-height-cm', `${pageHeightIn * 2.54}cm`)
+  elements.sheet.style.setProperty('--card-width-cm', `${pageWidthIn * 2.54}cm`)
+  elements.sheet.style.setProperty('--card-height-cm', `${pageHeightIn * 2.54}cm`)
+  elements.sheet.style.setProperty('--columns', '1')
+  elements.sheet.style.setProperty('--margin-cm', '0cm')
+  elements.sheet.style.setProperty('--h-gap-cm', '0cm')
+  elements.sheet.style.setProperty('--v-gap-cm', '0cm')
+
+  const card = document.createElement('div')
+  card.className = 'card pdf-card'
+  card.textContent = resizePdfInfo ? 'Resized PDF page' : 'Target page preview'
+  elements.sheet.append(card)
+
+  elements.generatePdfButton.disabled = true
+  elements.generateResizedPdfButton.disabled = !resizePdfInfo
+  elements.printButton.disabled = true
+
+  elements.summary.textContent = resizePdfInfo
+    ? `${resizePdfInfo.pageCount} page(s) will resize to ${paper.label} ${settings.orientation} using ${settings.mode} mode.`
+    : 'Upload a PDF to resize every page.'
+
+  setWarning(resizePdfInfo ? null : 'No PDF selected yet.')
+}
+
 function render(): void {
   if (appMode === 'image') {
     renderImageMode()
-  } else {
+  } else if (appMode === 'pdf') {
     renderPdfMode()
+  } else {
+    renderResizeMode()
   }
 
   scheduleScrollCueUpdate()
@@ -434,30 +515,46 @@ function setMode(nextMode: AppMode): void {
   appMode = nextMode
   elements.imageModePanel.hidden = nextMode !== 'image'
   elements.pdfModePanel.hidden = nextMode !== 'pdf'
+  elements.resizeModePanel.hidden = nextMode !== 'resize'
   elements.imageModeButton.classList.toggle('is-active', nextMode === 'image')
   elements.pdfModeButton.classList.toggle('is-active', nextMode === 'pdf')
+  elements.resizeModeButton.classList.toggle('is-active', nextMode === 'resize')
   elements.imageModeButton.setAttribute('aria-selected', String(nextMode === 'image'))
   elements.pdfModeButton.setAttribute('aria-selected', String(nextMode === 'pdf'))
+  elements.resizeModeButton.setAttribute('aria-selected', String(nextMode === 'resize'))
   elements.imageModeButton.tabIndex = nextMode === 'image' ? 0 : -1
   elements.pdfModeButton.tabIndex = nextMode === 'pdf' ? 0 : -1
+  elements.resizeModeButton.tabIndex = nextMode === 'resize' ? 0 : -1
   render()
 }
 
+function getModeButton(mode: AppMode): HTMLButtonElement {
+  if (mode === 'image') return elements.imageModeButton
+  if (mode === 'pdf') return elements.pdfModeButton
+  return elements.resizeModeButton
+}
+
 function handleModeTabKeydown(event: KeyboardEvent): void {
-  if (
-    event.key !== 'ArrowLeft' &&
-    event.key !== 'ArrowRight' &&
-    event.key !== 'Home' &&
-    event.key !== 'End'
-  ) {
+  const modes: AppMode[] = ['image', 'pdf', 'resize']
+  const currentIndex = modes.indexOf(appMode)
+  let nextIndex = currentIndex
+
+  if (event.key === 'ArrowLeft') {
+    nextIndex = (currentIndex - 1 + modes.length) % modes.length
+  } else if (event.key === 'ArrowRight') {
+    nextIndex = (currentIndex + 1) % modes.length
+  } else if (event.key === 'Home') {
+    nextIndex = 0
+  } else if (event.key === 'End') {
+    nextIndex = modes.length - 1
+  } else {
     return
   }
 
   event.preventDefault()
-  const nextMode = event.key === 'ArrowLeft' || event.key === 'Home' ? 'image' : 'pdf'
+  const nextMode = modes[nextIndex]
   setMode(nextMode)
-  const nextButton = nextMode === 'image' ? elements.imageModeButton : elements.pdfModeButton
-  nextButton.focus()
+  getModeButton(nextMode).focus()
 }
 
 function swapInputValues(firstInput: HTMLInputElement, secondInput: HTMLInputElement): void {
@@ -798,6 +895,20 @@ async function handlePdfUpload(): Promise<void> {
   }
 }
 
+async function handleResizePdfUpload(): Promise<void> {
+  const file = elements.resizePdfUpload.files?.[0]
+  if (!file) return
+
+  try {
+    resizePdfInfo = await readPdfFile(file)
+    elements.resizePdfMeta.textContent = `${resizePdfInfo.name}: ${resizePdfInfo.pageCount} page(s)`
+    render()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Could not load the PDF.'
+    setWarning(message)
+  }
+}
+
 async function generatePdf(): Promise<void> {
   if (!pdfInfo) return
 
@@ -824,6 +935,33 @@ async function generatePdf(): Promise<void> {
   }
 }
 
+async function generateResizedPdf(): Promise<void> {
+  if (!resizePdfInfo) return
+
+  try {
+    elements.generateResizedPdfButton.disabled = true
+    elements.generateResizedPdfButton.textContent = 'Generating...'
+    const settings = getPdfResizeSettingsFromControls()
+    const bytes = await resizePdfPages(resizePdfInfo.bytes, settings)
+    const pdfBuffer = new ArrayBuffer(bytes.byteLength)
+    new Uint8Array(pdfBuffer).set(bytes)
+    const blob = new Blob([pdfBuffer], { type: 'application/pdf' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    const baseName = resizePdfInfo.name.replace(/\.pdf$/i, '')
+    anchor.href = url
+    anchor.download = `${baseName}-${settings.paper}-${settings.orientation}-${settings.mode}.pdf`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Could not resize the PDF.'
+    setWarning(message)
+  } finally {
+    elements.generateResizedPdfButton.textContent = 'Generate resized PDF'
+    render()
+  }
+}
+
 function main(): void {
   const controls = document.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
     '.controls input, .controls select',
@@ -840,8 +978,10 @@ function main(): void {
 
   elements.imageModeButton.addEventListener('click', () => setMode('image'))
   elements.pdfModeButton.addEventListener('click', () => setMode('pdf'))
+  elements.resizeModeButton.addEventListener('click', () => setMode('resize'))
   elements.imageModeButton.addEventListener('keydown', handleModeTabKeydown)
   elements.pdfModeButton.addEventListener('keydown', handleModeTabKeydown)
+  elements.resizeModeButton.addEventListener('keydown', handleModeTabKeydown)
   elements.pdfOrientation.addEventListener('change', handlePdfOrientationChange)
 
   elements.imageUpload.addEventListener('change', () => {
@@ -852,12 +992,20 @@ function main(): void {
     void handlePdfUpload()
   })
 
+  elements.resizePdfUpload.addEventListener('change', () => {
+    void handleResizePdfUpload()
+  })
+
   elements.printButton.addEventListener('click', () => {
     window.print()
   })
 
   elements.generatePdfButton.addEventListener('click', () => {
     void generatePdf()
+  })
+
+  elements.generateResizedPdfButton.addEventListener('click', () => {
+    void generateResizedPdf()
   })
 
   setupPointerPersonality()

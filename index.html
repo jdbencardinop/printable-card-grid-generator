@@ -64,6 +64,17 @@
             >
               Multi-page PDF
             </button>
+            <button
+              id="resizeModeButton"
+              class="mode-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="resizeModePanel"
+              tabindex="-1"
+            >
+              Resize PDF
+            </button>
           </div>
 
           <div
@@ -323,6 +334,71 @@
             <div class="actions">
               <button id="generatePdfButton" type="button" disabled>
                 Generate imposed PDF
+              </button>
+            </div>
+          </div>
+
+          <div
+            id="resizeModePanel"
+            class="mode-panel"
+            role="tabpanel"
+            aria-labelledby="resizeModeButton"
+            hidden
+          >
+            <section class="panel-section panel-section-source" aria-labelledby="resizeSourceTitle">
+              <div class="section-heading">
+                <p class="section-kicker">Step 1</p>
+                <h2 id="resizeSourceTitle">Choose a PDF to resize</h2>
+                <p>Resize each page into a target paper size before printing or imposing.</p>
+              </div>
+
+              <label class="file-control">
+                <span>Source PDF</span>
+                <input id="resizePdfUpload" type="file" accept="application/pdf" />
+              </label>
+
+              <p id="resizePdfMeta" class="summary">No PDF selected.</p>
+            </section>
+
+            <section class="panel-section panel-section-layout" aria-labelledby="resizeLayoutTitle">
+              <div class="section-heading">
+                <p class="section-kicker">Step 2</p>
+                <h2 id="resizeLayoutTitle">Pick target paper</h2>
+                <p>Convert to Letter, A4, portrait, or landscape using the selected resize mode.</p>
+              </div>
+
+              <div class="settings-grid">
+                <label>
+                  <span>Target paper size</span>
+                  <select id="resizePaper">
+                    <option value="letter" selected>US Letter</option>
+                    <option value="a4">A4</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Target orientation</span>
+                  <select id="resizeOrientation">
+                    <option value="portrait" selected>Portrait</option>
+                    <option value="landscape">Landscape</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Resize mode</span>
+                  <select id="resizeMode">
+                    <option value="fit" selected>Fit, keep aspect ratio</option>
+                    <option value="fill">Fill and crop</option>
+                    <option value="center">Center without upscaling</option>
+                    <option value="stretch">Stretch to page</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <div class="actions">
+              <button id="generateResizedPdfButton" type="button" disabled>
+                Generate resized PDF
               </button>
             </div>
           </div>
