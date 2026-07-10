@@ -45,8 +45,12 @@ const KONAMI_KEYS = [
 
 const SCROLLBAR_COLOR_STOPS = [
   { progress: 0, color: [33, 24, 20] },
-  { progress: 0.32, color: [22, 189, 213] },
-  { progress: 0.66, color: [216, 58, 117] },
+  { progress: 0.25, color: [33, 24, 20] },
+  { progress: 0.26, color: [22, 189, 213] },
+  { progress: 0.5, color: [22, 189, 213] },
+  { progress: 0.51, color: [216, 58, 117] },
+  { progress: 0.75, color: [216, 58, 117] },
+  { progress: 0.76, color: [224, 173, 40] },
   { progress: 1, color: [224, 173, 40] },
 ] as const
 
@@ -77,6 +81,7 @@ function query<T extends Element>(selector: string): T {
 const elements = {
   imageModeButton: query<HTMLButtonElement>('#imageModeButton'),
   pdfModeButton: query<HTMLButtonElement>('#pdfModeButton'),
+  controls: query<HTMLElement>('.controls'),
   imageModePanel: query<HTMLDivElement>('#imageModePanel'),
   pdfModePanel: query<HTMLDivElement>('#pdfModePanel'),
   paper: query<HTMLSelectElement>('#paper'),
@@ -512,9 +517,19 @@ function updateScrollbarAccent(scroller: HTMLElement): void {
   scroller.style.setProperty('--scrollbar-thumb-color', getScrollbarColor(progress))
 }
 
+function updatePageScrollbarAccent(): void {
+  const maxScroll = document.documentElement.scrollHeight - window.innerHeight
+  const progress = maxScroll > 0 ? window.scrollY / maxScroll : 0
+  const color = getScrollbarColor(progress)
+
+  document.documentElement.style.setProperty('--scrollbar-thumb-color', color)
+  document.body.style.setProperty('--scrollbar-thumb-color', color)
+}
+
 function updateScrollbarAccents(): void {
   updateScrollbarAccent(elements.previewScroll)
-  updateScrollbarAccent(document.querySelector<HTMLElement>('.controls') ?? elements.previewScroll)
+  updateScrollbarAccent(elements.controls)
+  updatePageScrollbarAccent()
 }
 
 function scheduleScrollbarAccentUpdate(): void {
@@ -646,14 +661,13 @@ function setupPointerPersonality(): void {
 }
 
 function setupScrollCue(): void {
-  const controls = document.querySelector<HTMLElement>('.controls')
-
   elements.previewScroll.addEventListener('scroll', () => {
     scheduleScrollCueUpdate()
     scheduleScrollbarAccentUpdate()
   }, { passive: true })
 
-  controls?.addEventListener('scroll', scheduleScrollbarAccentUpdate, { passive: true })
+  elements.controls.addEventListener('scroll', scheduleScrollbarAccentUpdate, { passive: true })
+  window.addEventListener('scroll', scheduleScrollbarAccentUpdate, { passive: true })
 
   window.addEventListener('resize', () => {
     scheduleScrollCueUpdate()

@@ -47,6 +47,13 @@ body {
   color: var(--ink);
 }
 
+html,
+body {
+  --scrollbar-thumb-color: var(--ink);
+  scrollbar-color: var(--scrollbar-thumb-color) rgba(255, 250, 240, 0.5);
+  scrollbar-width: thin;
+}
+
 body::before,
 body::after {
   position: fixed;
@@ -193,12 +200,16 @@ p {
   scrollbar-gutter: stable;
 }
 
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
 .controls::-webkit-scrollbar,
 .preview-scroll::-webkit-scrollbar {
   width: 12px;
   height: 12px;
 }
 
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
 .controls::-webkit-scrollbar-track,
 .preview-scroll::-webkit-scrollbar-track {
   border-radius: 999px;
@@ -207,6 +218,8 @@ p {
     rgba(255, 250, 240, 0.5);
 }
 
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
 .controls::-webkit-scrollbar-thumb,
 .preview-scroll::-webkit-scrollbar-thumb {
   border: 3px solid rgba(255, 250, 240, 0.68);
@@ -216,6 +229,8 @@ p {
   transition: background-color 120ms linear;
 }
 
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner,
 .controls::-webkit-scrollbar-corner,
 .preview-scroll::-webkit-scrollbar-corner {
   background: rgba(255, 250, 240, 0.5);
