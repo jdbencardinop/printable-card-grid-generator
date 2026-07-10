@@ -19,7 +19,7 @@
 
     <main class="app-shell">
       <section class="controls" aria-labelledby="appTitle">
-        <div class="hero">
+        <div class="hero reveal reveal-fast">
           <div class="hero-kicker-row">
             <p class="eyebrow">Print shop layout tool</p>
             <span class="press-mark" aria-hidden="true"></span>
@@ -67,7 +67,7 @@
             role="tabpanel"
             aria-labelledby="imageModeButton"
           >
-            <section class="panel-section panel-section-source" aria-labelledby="imageSourceTitle">
+            <section class="panel-section panel-section-source reveal" aria-labelledby="imageSourceTitle">
               <div class="section-heading">
                 <p class="section-kicker">Step 1</p>
                 <h2 id="imageSourceTitle">Choose artwork</h2>
@@ -92,7 +92,7 @@
               </div>
             </section>
 
-            <section class="panel-section panel-section-layout" aria-labelledby="imageLayoutTitle">
+            <section class="panel-section panel-section-layout reveal" aria-labelledby="imageLayoutTitle">
               <div class="section-heading">
                 <p class="section-kicker">Step 2</p>
                 <h2 id="imageLayoutTitle">Set the sheet geometry</h2>
@@ -168,7 +168,7 @@
               </div>
             </section>
 
-            <section class="panel-section panel-section-guides" aria-labelledby="imageGuidesTitle">
+            <section class="panel-section panel-section-guides reveal" aria-labelledby="imageGuidesTitle">
               <div class="section-heading">
                 <p class="section-kicker">Step 3</p>
                 <h2 id="imageGuidesTitle">Mark the cuts</h2>
@@ -206,7 +206,7 @@
             aria-labelledby="pdfModeButton"
             hidden
           >
-            <section class="panel-section panel-section-source" aria-labelledby="pdfSourceTitle">
+            <section class="panel-section panel-section-source reveal" aria-labelledby="pdfSourceTitle">
               <div class="section-heading">
                 <p class="section-kicker">Step 1</p>
                 <h2 id="pdfSourceTitle">Choose a source PDF</h2>
@@ -221,7 +221,7 @@
               <p id="pdfMeta" class="summary">No PDF selected.</p>
             </section>
 
-            <section class="panel-section panel-section-layout" aria-labelledby="pdfLayoutTitle">
+            <section class="panel-section panel-section-layout reveal" aria-labelledby="pdfLayoutTitle">
               <div class="section-heading">
                 <p class="section-kicker">Step 2</p>
                 <h2 id="pdfLayoutTitle">Impose the sheet</h2>
@@ -287,7 +287,7 @@
               </div>
             </section>
 
-            <section class="panel-section panel-section-guides" aria-labelledby="pdfGuidesTitle">
+            <section class="panel-section panel-section-guides reveal" aria-labelledby="pdfGuidesTitle">
               <div class="section-heading">
                 <p class="section-kicker">Step 3</p>
                 <h2 id="pdfGuidesTitle">Choose guide treatment</h2>
@@ -314,14 +314,14 @@
             </div>
           </div>
 
-          <div class="output-stack" aria-live="polite">
+          <div class="output-stack reveal" aria-live="polite">
             <p id="summary" class="summary">Upload an image to build a sheet.</p>
             <p id="warning" class="warning" role="status" hidden></p>
           </div>
         </div>
       </section>
 
-      <section class="preview-area" aria-label="Printable sheet preview">
+      <section class="preview-area reveal reveal-fast" aria-label="Printable sheet preview">
         <div class="preview-chrome">
           <div>
             <p class="eyebrow">Live proof</p>
@@ -330,13 +330,26 @@
           <p>Actual-size canvas. Scroll to inspect the full printable sheet.</p>
         </div>
 
-        <div class="preview-scroll">
+        <div id="scrollCue" class="scroll-cue" aria-hidden="true">
+          <span>Inspect sheet</span>
+          <span class="scroll-cue-arrow">&darr;</span>
+        </div>
+
+        <div id="previewScroll" class="preview-scroll">
           <div id="sheet" class="sheet is-empty">
             <p class="empty-state">Upload an image to preview the printable sheet.</p>
           </div>
         </div>
       </section>
     </main>
+
+    <div id="easterEggOverlay" class="easter-egg" role="status" aria-live="polite" aria-hidden="true">
+      <div class="easter-card">
+        <span class="easter-symbol" aria-hidden="true">CMYK</span>
+        <p>Make-ready. Register. Cut. Repeat.</p>
+      </div>
+    </div>
+    <span id="easterEggHint" class="easter-hint" aria-hidden="true"></span>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

@@ -29,11 +29,30 @@ const CUT_GUIDE_MODES: readonly CutGuideMode[] = [
   'crop-solid',
 ]
 
+const REDUCED_MOTION_QUERY = window.matchMedia('(prefers-reduced-motion: reduce)')
+const KONAMI_KEYS = [
+  'ArrowUp',
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowLeft',
+  'ArrowRight',
+  'b',
+  'a',
+] as const
+
 type AppMode = 'image' | 'pdf'
 
 let appMode: AppMode = 'image'
 let imageInfo: ImageInfo | null = null
 let pdfInfo: { bytes: Uint8Array; pageCount: number; name: string } | null = null
+let scrollCueFrame: number | undefined
+let pointerFrame: number | undefined
+let pendingPointer: { x: number; y: number } | null = null
+let easterProgress = 0
+let easterTimeout: number | undefined
 
 function query<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector)
@@ -82,7 +101,16 @@ const elements = {
   sheet: query<HTMLDivElement>('#sheet'),
   summary: query<HTMLParagraphElement>('#summary'),
   warning: query<HTMLParagraphElement>('#warning'),
+  previewArea: query<HTMLElement>('.preview-area'),
+  previewScroll: query<HTMLDivElement>('#previewScroll'),
+  scrollCue: query<HTMLDivElement>('#scrollCue'),
+  easterEggOverlay: query<HTMLDivElement>('#easterEggOverlay'),
+  easterEggHint: query<HTMLSpanElement>('#easterEggHint'),
   printPageSize: query<HTMLStyleElement>('#printPageSize'),
+}
+
+function prefersReducedMotion(): boolean {
+  return REDUCED_MOTION_QUERY.matches
 }
 
 function isPaperPresetKey(value: string): value is PaperPresetKey {
@@ -374,6 +402,8 @@ function render(): void {
   } else {
     renderPdfMode()
   }
+
+  scheduleScrollCueUpdate()
 }
 
 function setMode(nextMode: AppMode): void {
@@ -404,6 +434,217 @@ function handleModeTabKeydown(event: KeyboardEvent): void {
   setMode(nextMode)
   const nextButton = nextMode === 'image' ? elements.imageModeButton : elements.pdfModeButton
   nextButton.focus()
+}
+
+function setupReveals(): void {
+  document.documentElement.classList.add('js')
+  const revealElements = document.querySelectorAll<HTMLElement>('.reveal')
+
+  if (prefersReducedMotion() || !('IntersectionObserver' in window)) {
+    revealElements.forEach((element) => element.classList.add('is-visible'))
+    return
+  }
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) {
+          return
+        }
+
+        entry.target.classList.add('is-visible')
+        observer.unobserve(entry.target)
+      })
+    },
+    { threshold: 0.15 },
+  )
+
+  revealElements.forEach((element) => observer.observe(element))
+}
+
+function updateScrollCue(): void {
+  if (prefersReducedMotion()) {
+    elements.scrollCue.classList.add('is-hidden')
+    elements.scrollCue.classList.remove('is-ready')
+    return
+  }
+
+  const maxScroll = elements.previewScroll.scrollHeight - elements.previewScroll.clientHeight
+  const hasScrollableProof = maxScroll > 100
+
+  elements.scrollCue.classList.toggle('is-ready', hasScrollableProof)
+  elements.scrollCue.classList.toggle('is-hidden', !hasScrollableProof)
+
+  if (!hasScrollableProof) {
+    elements.scrollCue.style.setProperty('--scroll-progress', '0')
+    elements.scrollCue.classList.remove('is-faded')
+    return
+  }
+
+  const progress = Math.min(1, Math.max(0, elements.previewScroll.scrollTop / maxScroll))
+  elements.scrollCue.style.setProperty('--scroll-progress', String(progress))
+  elements.scrollCue.classList.toggle('is-faded', elements.previewScroll.scrollTop > 200)
+}
+
+function scheduleScrollCueUpdate(): void {
+  if (scrollCueFrame !== undefined) {
+    window.cancelAnimationFrame(scrollCueFrame)
+  }
+
+  scrollCueFrame = window.requestAnimationFrame(() => {
+    scrollCueFrame = undefined
+    updateScrollCue()
+  })
+}
+
+function updateGlowTargets(pointer: { x: number; y: number }): void {
+  const glowTargets = document.querySelectorAll<HTMLElement>('.hero-proof span')
+
+  glowTargets.forEach((target) => {
+    const rect = target.getBoundingClientRect()
+    const centerX = rect.left + rect.width / 2
+    const centerY = rect.top + rect.height / 2
+    const distance = Math.hypot(pointer.x - centerX, pointer.y - centerY)
+    const intensity = Math.max(0, 1 - distance / 140)
+
+    target.style.setProperty('--glow-intensity', intensity.toFixed(3))
+  })
+}
+
+function setupPointerPersonality(): void {
+  const resetPointerEffects = (): void => {
+    document.documentElement.style.removeProperty('--pointer-x')
+    document.documentElement.style.removeProperty('--pointer-y')
+    elements.previewArea.style.setProperty('--preview-glow', '0')
+
+    document
+      .querySelectorAll<HTMLElement>('.hero-proof span')
+      .forEach((target) => target.style.setProperty('--glow-intensity', '0'))
+  }
+
+  window.addEventListener(
+    'pointermove',
+    (event) => {
+      if (prefersReducedMotion()) {
+        return
+      }
+
+      pendingPointer = { x: event.clientX, y: event.clientY }
+
+      if (pointerFrame !== undefined) {
+        return
+      }
+
+      pointerFrame = window.requestAnimationFrame(() => {
+        pointerFrame = undefined
+
+        if (!pendingPointer) {
+          return
+        }
+
+        document.documentElement.style.setProperty('--pointer-x', `${pendingPointer.x}px`)
+        document.documentElement.style.setProperty('--pointer-y', `${pendingPointer.y}px`)
+        updateGlowTargets(pendingPointer)
+      })
+    },
+    { passive: true },
+  )
+
+  elements.previewArea.addEventListener(
+    'pointermove',
+    (event) => {
+      if (prefersReducedMotion()) {
+        return
+      }
+
+      const rect = elements.previewArea.getBoundingClientRect()
+      elements.previewArea.style.setProperty('--preview-x', `${event.clientX - rect.left}px`)
+      elements.previewArea.style.setProperty('--preview-y', `${event.clientY - rect.top}px`)
+      elements.previewArea.style.setProperty('--preview-glow', '1')
+    },
+    { passive: true },
+  )
+
+  elements.previewArea.addEventListener('pointerleave', () => {
+    elements.previewArea.style.setProperty('--preview-glow', '0')
+  })
+
+  REDUCED_MOTION_QUERY.addEventListener('change', () => {
+    if (prefersReducedMotion()) {
+      resetPointerEffects()
+    }
+
+    scheduleScrollCueUpdate()
+  })
+}
+
+function setupScrollCue(): void {
+  elements.previewScroll.addEventListener('scroll', scheduleScrollCueUpdate, { passive: true })
+  window.addEventListener('resize', scheduleScrollCueUpdate, { passive: true })
+  scheduleScrollCueUpdate()
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLSelectElement ||
+    target instanceof HTMLTextAreaElement ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  )
+}
+
+function normalizeShortcutKey(event: KeyboardEvent): string {
+  return event.key.length === 1 ? event.key.toLowerCase() : event.key
+}
+
+function syncEasterHint(): void {
+  elements.easterEggHint.classList.toggle(
+    'is-visible',
+    easterProgress >= 2 && !prefersReducedMotion(),
+  )
+}
+
+function triggerEasterEgg(): void {
+  if (easterTimeout !== undefined) {
+    window.clearTimeout(easterTimeout)
+  }
+
+  elements.easterEggOverlay.classList.add('is-active')
+  elements.easterEggOverlay.setAttribute('aria-hidden', 'false')
+
+  easterTimeout = window.setTimeout(() => {
+    elements.easterEggOverlay.classList.remove('is-active')
+    elements.easterEggOverlay.setAttribute('aria-hidden', 'true')
+    easterTimeout = undefined
+  }, 3000)
+}
+
+function setupEasterEgg(): void {
+  window.addEventListener('keydown', (event) => {
+    if (isEditableTarget(event.target)) {
+      return
+    }
+
+    const key = normalizeShortcutKey(event)
+    const expectedKey = KONAMI_KEYS[easterProgress]
+
+    if (key === expectedKey) {
+      easterProgress += 1
+
+      if (easterProgress === KONAMI_KEYS.length) {
+        easterProgress = 0
+        syncEasterHint()
+        triggerEasterEgg()
+        return
+      }
+
+      syncEasterHint()
+      return
+    }
+
+    easterProgress = key === KONAMI_KEYS[0] ? 1 : 0
+    syncEasterHint()
+  })
 }
 
 async function handleImageUpload(): Promise<void> {
@@ -499,6 +740,10 @@ function main(): void {
     void generatePdf()
   })
 
+  setupReveals()
+  setupPointerPersonality()
+  setupScrollCue()
+  setupEasterEgg()
   render()
 }
 
