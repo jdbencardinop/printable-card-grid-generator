@@ -43,12 +43,20 @@ const KONAMI_KEYS = [
   'a',
 ] as const
 
+const SCROLLBAR_COLOR_STOPS = [
+  { progress: 0, color: [33, 24, 20] },
+  { progress: 0.32, color: [22, 189, 213] },
+  { progress: 0.66, color: [216, 58, 117] },
+  { progress: 1, color: [224, 173, 40] },
+] as const
+
 type AppMode = 'image' | 'pdf'
 
 let appMode: AppMode = 'image'
 let imageInfo: ImageInfo | null = null
 let pdfInfo: { bytes: Uint8Array; pageCount: number; name: string } | null = null
 let scrollCueFrame: number | undefined
+let scrollbarFrame: number | undefined
 let pointerFrame: number | undefined
 let pendingPointer: { x: number; y: number } | null = null
 let easterProgress = 0
@@ -414,6 +422,7 @@ function render(): void {
   }
 
   scheduleScrollCueUpdate()
+  scheduleScrollbarAccentUpdate()
 }
 
 function setMode(nextMode: AppMode): void {
@@ -458,6 +467,67 @@ function handlePdfOrientationChange(): void {
   render()
 }
 
+function clampProgress(value: number): number {
+  return Math.min(1, Math.max(0, value))
+}
+
+function interpolateColor(start: readonly number[], end: readonly number[], progress: number): string {
+  const [red, green, blue] = start.map((channel, index) => {
+    const nextChannel = end[index] ?? channel
+    return Math.round(channel + (nextChannel - channel) * progress)
+  })
+
+  return `rgb(${red} ${green} ${blue})`
+}
+
+function getScrollbarColor(progress: number): string {
+  const clampedProgress = clampProgress(progress)
+
+  for (let index = 0; index < SCROLLBAR_COLOR_STOPS.length - 1; index += 1) {
+    const currentStop = SCROLLBAR_COLOR_STOPS[index]
+    const nextStop = SCROLLBAR_COLOR_STOPS[index + 1]
+
+    if (clampedProgress >= currentStop.progress && clampedProgress <= nextStop.progress) {
+      const localProgress = (clampedProgress - currentStop.progress) /
+        (nextStop.progress - currentStop.progress)
+
+      return interpolateColor(currentStop.color, nextStop.color, localProgress)
+    }
+  }
+
+  return interpolateColor(
+    SCROLLBAR_COLOR_STOPS[SCROLLBAR_COLOR_STOPS.length - 1].color,
+    SCROLLBAR_COLOR_STOPS[SCROLLBAR_COLOR_STOPS.length - 1].color,
+    1,
+  )
+}
+
+function updateScrollbarAccent(scroller: HTMLElement): void {
+  const maxVerticalScroll = scroller.scrollHeight - scroller.clientHeight
+  const maxHorizontalScroll = scroller.scrollWidth - scroller.clientWidth
+  const verticalProgress = maxVerticalScroll > 0 ? scroller.scrollTop / maxVerticalScroll : 0
+  const horizontalProgress = maxHorizontalScroll > 0 ? scroller.scrollLeft / maxHorizontalScroll : 0
+  const progress = maxVerticalScroll > 0 ? verticalProgress : horizontalProgress
+
+  scroller.style.setProperty('--scrollbar-thumb-color', getScrollbarColor(progress))
+}
+
+function updateScrollbarAccents(): void {
+  updateScrollbarAccent(elements.previewScroll)
+  updateScrollbarAccent(document.querySelector<HTMLElement>('.controls') ?? elements.previewScroll)
+}
+
+function scheduleScrollbarAccentUpdate(): void {
+  if (scrollbarFrame !== undefined) {
+    window.cancelAnimationFrame(scrollbarFrame)
+  }
+
+  scrollbarFrame = window.requestAnimationFrame(() => {
+    scrollbarFrame = undefined
+    updateScrollbarAccents()
+  })
+}
+
 function updateScrollCue(): void {
   if (prefersReducedMotion()) {
     elements.scrollCue.classList.add('is-hidden')
@@ -480,6 +550,7 @@ function updateScrollCue(): void {
   const progress = Math.min(1, Math.max(0, elements.previewScroll.scrollTop / maxScroll))
   elements.scrollCue.style.setProperty('--scroll-progress', String(progress))
   elements.scrollCue.classList.toggle('is-faded', elements.previewScroll.scrollTop > 200)
+  scheduleScrollbarAccentUpdate()
 }
 
 function scheduleScrollCueUpdate(): void {
@@ -575,9 +646,22 @@ function setupPointerPersonality(): void {
 }
 
 function setupScrollCue(): void {
-  elements.previewScroll.addEventListener('scroll', scheduleScrollCueUpdate, { passive: true })
-  window.addEventListener('resize', scheduleScrollCueUpdate, { passive: true })
+  const controls = document.querySelector<HTMLElement>('.controls')
+
+  elements.previewScroll.addEventListener('scroll', () => {
+    scheduleScrollCueUpdate()
+    scheduleScrollbarAccentUpdate()
+  }, { passive: true })
+
+  controls?.addEventListener('scroll', scheduleScrollbarAccentUpdate, { passive: true })
+
+  window.addEventListener('resize', () => {
+    scheduleScrollCueUpdate()
+    scheduleScrollbarAccentUpdate()
+  }, { passive: true })
+
   scheduleScrollCueUpdate()
+  scheduleScrollbarAccentUpdate()
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
