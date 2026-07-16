@@ -153,8 +153,34 @@
                 </label>
 
                 <label>
-                  <span>Margin, cm</span>
-                  <input id="marginCm" type="number" value="0.5" step="0.1" min="0" />
+                  <span>Printer margin preset</span>
+                  <select id="marginPreset">
+                    <option value="custom">Custom</option>
+                    <option value="0">No margin</option>
+                    <option value="0.5" selected>0.5 cm</option>
+                    <option value="1">1 cm</option>
+                    <option value="2">2 cm</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Top margin, cm</span>
+                  <input id="marginTopCm" type="number" value="0.5" step="0.1" min="0" />
+                </label>
+
+                <label>
+                  <span>Right margin, cm</span>
+                  <input id="marginRightCm" type="number" value="0.5" step="0.1" min="0" />
+                </label>
+
+                <label>
+                  <span>Bottom margin, cm</span>
+                  <input id="marginBottomCm" type="number" value="0.5" step="0.1" min="0" />
+                </label>
+
+                <label>
+                  <span>Left margin, cm</span>
+                  <input id="marginLeftCm" type="number" value="0.5" step="0.1" min="0" />
                 </label>
 
                 <label>
@@ -275,13 +301,35 @@
                 </label>
 
                 <label>
-                  <span>Horizontal margin, in</span>
-                  <input id="pdfMarginXIn" type="number" value="0.25" step="0.05" min="0" />
+                  <span>Printer margin preset</span>
+                  <select id="pdfMarginPreset">
+                    <option value="custom">Custom</option>
+                    <option value="0">No margin</option>
+                    <option value="0.2">0.5 cm / 0.2 in</option>
+                    <option value="0.4">1 cm / 0.4 in</option>
+                    <option value="0.8">2 cm / 0.8 in</option>
+                    <option value="0.25" selected>0.25 in</option>
+                  </select>
                 </label>
 
                 <label>
-                  <span>Vertical margin, in</span>
-                  <input id="pdfMarginYIn" type="number" value="0.25" step="0.05" min="0" />
+                  <span>Top margin, in</span>
+                  <input id="pdfMarginTopIn" type="number" value="0.25" step="0.05" min="0" />
+                </label>
+
+                <label>
+                  <span>Right margin, in</span>
+                  <input id="pdfMarginRightIn" type="number" value="0.25" step="0.05" min="0" />
+                </label>
+
+                <label>
+                  <span>Bottom margin, in</span>
+                  <input id="pdfMarginBottomIn" type="number" value="0.25" step="0.05" min="0" />
+                </label>
+
+                <label>
+                  <span>Left margin, in</span>
+                  <input id="pdfMarginLeftIn" type="number" value="0.25" step="0.05" min="0" />
                 </label>
 
                 <label>

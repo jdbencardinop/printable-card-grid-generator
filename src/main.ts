@@ -94,7 +94,11 @@ const elements = {
   targetCardCount: query<HTMLInputElement>('#targetCardCount'),
   manualColumns: query<HTMLInputElement>('#manualColumns'),
   manualRows: query<HTMLInputElement>('#manualRows'),
-  marginCm: query<HTMLInputElement>('#marginCm'),
+  marginPreset: query<HTMLSelectElement>('#marginPreset'),
+  marginTopCm: query<HTMLInputElement>('#marginTopCm'),
+  marginRightCm: query<HTMLInputElement>('#marginRightCm'),
+  marginBottomCm: query<HTMLInputElement>('#marginBottomCm'),
+  marginLeftCm: query<HTMLInputElement>('#marginLeftCm'),
   horizontalGapCm: query<HTMLInputElement>('#horizontalGapCm'),
   verticalGapCm: query<HTMLInputElement>('#verticalGapCm'),
   cutGuideMode: query<HTMLSelectElement>('#cutGuideMode'),
@@ -107,8 +111,11 @@ const elements = {
   pdfCardHeightIn: query<HTMLInputElement>('#pdfCardHeightIn'),
   pdfColumns: query<HTMLInputElement>('#pdfColumns'),
   pdfRows: query<HTMLInputElement>('#pdfRows'),
-  pdfMarginXIn: query<HTMLInputElement>('#pdfMarginXIn'),
-  pdfMarginYIn: query<HTMLInputElement>('#pdfMarginYIn'),
+  pdfMarginPreset: query<HTMLSelectElement>('#pdfMarginPreset'),
+  pdfMarginTopIn: query<HTMLInputElement>('#pdfMarginTopIn'),
+  pdfMarginRightIn: query<HTMLInputElement>('#pdfMarginRightIn'),
+  pdfMarginBottomIn: query<HTMLInputElement>('#pdfMarginBottomIn'),
+  pdfMarginLeftIn: query<HTMLInputElement>('#pdfMarginLeftIn'),
   pdfGapXIn: query<HTMLInputElement>('#pdfGapXIn'),
   pdfGapYIn: query<HTMLInputElement>('#pdfGapYIn'),
   pdfCutGuideMode: query<HTMLSelectElement>('#pdfCutGuideMode'),
@@ -159,6 +166,10 @@ function readPositiveNumber(input: HTMLInputElement, fallback: number): number {
 function readNonNegativeNumber(input: HTMLInputElement, fallback: number): number {
   const value = readRequiredNumber(input, fallback)
   return Number.isFinite(value) && value >= 0 ? value : fallback
+}
+
+function formatCssMargins(values: { top: number; right: number; bottom: number; left: number }, unit: string): string {
+  return `${values.top}${unit} ${values.right}${unit} ${values.bottom}${unit} ${values.left}${unit}`
 }
 
 function readPositiveInteger(input: HTMLInputElement, fallback: number): number {
@@ -244,7 +255,12 @@ function getSettingsFromControls(): LayoutSettings {
   return {
     paper: paperValue,
     orientation: orientationValue,
-    marginCm: readRequiredNumber(elements.marginCm, 0.5),
+    marginsCm: {
+      top: readNonNegativeNumber(elements.marginTopCm, 0.5),
+      right: readNonNegativeNumber(elements.marginRightCm, 0.5),
+      bottom: readNonNegativeNumber(elements.marginBottomCm, 0.5),
+      left: readNonNegativeNumber(elements.marginLeftCm, 0.5),
+    },
     horizontalGapCm: readRequiredNumber(elements.horizontalGapCm, 0.5),
     verticalGapCm: readRequiredNumber(elements.verticalGapCm, 1),
     cardLongSideCm: readRequiredNumber(elements.cardLongSideCm, 6.5),
@@ -277,8 +293,12 @@ function getPdfSettingsFromControls(): PdfImpositionSettings {
     cardHeightIn: readPositiveNumber(elements.pdfCardHeightIn, 4),
     columns: readPositiveInteger(elements.pdfColumns, 3),
     rows: readPositiveInteger(elements.pdfRows, 2),
-    marginXIn: readNonNegativeNumber(elements.pdfMarginXIn, 0.25),
-    marginYIn: readNonNegativeNumber(elements.pdfMarginYIn, 0.25),
+    marginsIn: {
+      top: readNonNegativeNumber(elements.pdfMarginTopIn, 0.25),
+      right: readNonNegativeNumber(elements.pdfMarginRightIn, 0.25),
+      bottom: readNonNegativeNumber(elements.pdfMarginBottomIn, 0.25),
+      left: readNonNegativeNumber(elements.pdfMarginLeftIn, 0.25),
+    },
     horizontalGapIn: readNonNegativeNumber(elements.pdfGapXIn, 0),
     verticalGapIn: readNonNegativeNumber(elements.pdfGapYIn, 0),
     cutGuideMode: guideModeValue,
@@ -303,7 +323,7 @@ function renderEmptySheet(settings: LayoutSettings): void {
     '<p class="empty-state">Upload an image to preview the printable sheet.</p>'
   elements.sheet.style.setProperty('--page-width-cm', `${paper.widthCm}cm`)
   elements.sheet.style.setProperty('--page-height-cm', `${paper.heightCm}cm`)
-  elements.sheet.style.setProperty('--margin-cm', `${settings.marginCm}cm`)
+  elements.sheet.style.setProperty('--margin-cm', formatCssMargins(settings.marginsCm, 'cm'))
   elements.summary.textContent = 'Upload an image to build a sheet.'
   elements.printButton.disabled = true
   setWarning(null)
@@ -329,7 +349,7 @@ function renderImageMode(): void {
   elements.sheet.style.setProperty('--card-width-cm', `${layout.cardWidthCm}cm`)
   elements.sheet.style.setProperty('--card-height-cm', `${layout.cardHeightCm}cm`)
   elements.sheet.style.setProperty('--columns', String(layout.columns))
-  elements.sheet.style.setProperty('--margin-cm', `${settings.marginCm}cm`)
+  elements.sheet.style.setProperty('--margin-cm', formatCssMargins(settings.marginsCm, 'cm'))
   elements.sheet.style.setProperty('--h-gap-cm', `${settings.horizontalGapCm}cm`)
   elements.sheet.style.setProperty('--v-gap-cm', `${settings.verticalGapCm}cm`)
 
@@ -346,7 +366,7 @@ function renderImageMode(): void {
   }
 
   elements.sheet.append(fragment)
-  elements.printButton.disabled = false
+  elements.printButton.disabled = !layout.fitsPage
   elements.summary.textContent =
     `${layout.columns} x ${layout.rows} = ${layout.capacity} max. ` +
     `Rendering ${layout.renderedCount} card(s). ` +
@@ -387,7 +407,12 @@ function renderPdfMode(): void {
   elements.sheet.style.setProperty('--card-width-cm', `${settings.cardWidthIn * 2.54}cm`)
   elements.sheet.style.setProperty('--card-height-cm', `${settings.cardHeightIn * 2.54}cm`)
   elements.sheet.style.setProperty('--columns', String(settings.columns))
-  elements.sheet.style.setProperty('--margin-cm', `${settings.marginYIn * 2.54}cm ${settings.marginXIn * 2.54}cm`)
+  elements.sheet.style.setProperty('--margin-cm', formatCssMargins({
+    top: settings.marginsIn.top * 2.54,
+    right: settings.marginsIn.right * 2.54,
+    bottom: settings.marginsIn.bottom * 2.54,
+    left: settings.marginsIn.left * 2.54,
+  }, 'cm'))
   elements.sheet.style.setProperty('--h-gap-cm', `${settings.horizontalGapIn * 2.54}cm`)
   elements.sheet.style.setProperty('--v-gap-cm', `${settings.verticalGapIn * 2.54}cm`)
 
@@ -469,6 +494,22 @@ function handlePdfOrientationChange(): void {
   swapInputValues(elements.pdfColumns, elements.pdfRows)
   swapInputValues(elements.pdfCardWidthIn, elements.pdfCardHeightIn)
   render()
+}
+
+function applyMarginPreset(select: HTMLSelectElement, inputs: HTMLInputElement[]): void {
+  if (select.value === 'custom') {
+    return
+  }
+
+  for (const input of inputs) {
+    input.value = select.value
+  }
+
+  render()
+}
+
+function markPresetCustom(select: HTMLSelectElement): void {
+  select.value = 'custom'
 }
 
 function clampProgress(value: number): number {
@@ -827,6 +868,18 @@ function main(): void {
   const controls = document.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
     '.controls input, .controls select',
   )
+  const imageMarginInputs = [
+    elements.marginTopCm,
+    elements.marginRightCm,
+    elements.marginBottomCm,
+    elements.marginLeftCm,
+  ]
+  const pdfMarginInputs = [
+    elements.pdfMarginTopIn,
+    elements.pdfMarginRightIn,
+    elements.pdfMarginBottomIn,
+    elements.pdfMarginLeftIn,
+  ]
 
   for (const control of controls) {
     if (control === elements.pdfOrientation) {
@@ -842,6 +895,16 @@ function main(): void {
   elements.imageModeButton.addEventListener('keydown', handleModeTabKeydown)
   elements.pdfModeButton.addEventListener('keydown', handleModeTabKeydown)
   elements.pdfOrientation.addEventListener('change', handlePdfOrientationChange)
+  elements.marginPreset.addEventListener('change', () => applyMarginPreset(elements.marginPreset, imageMarginInputs))
+  elements.pdfMarginPreset.addEventListener('change', () => applyMarginPreset(elements.pdfMarginPreset, pdfMarginInputs))
+
+  for (const input of imageMarginInputs) {
+    input.addEventListener('input', () => markPresetCustom(elements.marginPreset))
+  }
+
+  for (const input of pdfMarginInputs) {
+    input.addEventListener('input', () => markPresetCustom(elements.pdfMarginPreset))
+  }
 
   elements.imageUpload.addEventListener('change', () => {
     void handleImageUpload()

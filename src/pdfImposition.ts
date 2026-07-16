@@ -1,5 +1,5 @@
 import { PDFDocument, PDFPage, rgb } from 'pdf-lib'
-import type { CutGuideMode, PdfImpositionSettings, PaperOrientation, PaperPresetKey } from './types'
+import type { CutGuideMode, PageMargins, PdfImpositionSettings, PaperOrientation, PaperPresetKey } from './types'
 
 const INCH = 72
 
@@ -112,14 +112,31 @@ function drawGuides(
   }
 }
 
+function validateMarginsIn(margins: PageMargins): void {
+  if (
+    !Number.isFinite(margins.top) ||
+    !Number.isFinite(margins.right) ||
+    !Number.isFinite(margins.bottom) ||
+    !Number.isFinite(margins.left) ||
+    margins.top < 0 ||
+    margins.right < 0 ||
+    margins.bottom < 0 ||
+    margins.left < 0
+  ) {
+    throw new Error('Margins must be non-negative numbers.')
+  }
+}
+
 export function computePdfCapacity(settings: PdfImpositionSettings): {
   capacity: number
   pageWidthPt: number
   pageHeightPt: number
   cardWidthPt: number
   cardHeightPt: number
-  marginXPt: number
-  marginYPt: number
+  marginTopPt: number
+  marginRightPt: number
+  marginBottomPt: number
+  marginLeftPt: number
   usedWidthPt: number
   usedHeightPt: number
   fitsPage: boolean
@@ -143,27 +160,26 @@ export function computePdfCapacity(settings: PdfImpositionSettings): {
     throw new Error('Card width and height must be positive numbers.')
   }
   if (
-    !Number.isFinite(settings.marginXIn) ||
-    !Number.isFinite(settings.marginYIn) ||
     !Number.isFinite(settings.horizontalGapIn) ||
     !Number.isFinite(settings.verticalGapIn) ||
-    settings.marginXIn < 0 ||
-    settings.marginYIn < 0 ||
     settings.horizontalGapIn < 0 ||
     settings.verticalGapIn < 0
   ) {
-    throw new Error('Margins and gaps must be non-negative numbers.')
+    throw new Error('Gaps must be non-negative numbers.')
   }
+  validateMarginsIn(settings.marginsIn)
 
   const page = getPaperSizePoints(settings.paper, settings.orientation)
   const cardWidthPt = settings.cardWidthIn * INCH
   const cardHeightPt = settings.cardHeightIn * INCH
-  const marginXPt = settings.marginXIn * INCH
-  const marginYPt = settings.marginYIn * INCH
+  const marginTopPt = settings.marginsIn.top * INCH
+  const marginRightPt = settings.marginsIn.right * INCH
+  const marginBottomPt = settings.marginsIn.bottom * INCH
+  const marginLeftPt = settings.marginsIn.left * INCH
   const gapXPt = settings.horizontalGapIn * INCH
   const gapYPt = settings.verticalGapIn * INCH
-  const usedWidthPt = settings.columns * cardWidthPt + Math.max(0, settings.columns - 1) * gapXPt + marginXPt * 2
-  const usedHeightPt = settings.rows * cardHeightPt + Math.max(0, settings.rows - 1) * gapYPt + marginYPt * 2
+  const usedWidthPt = settings.columns * cardWidthPt + Math.max(0, settings.columns - 1) * gapXPt + marginLeftPt + marginRightPt
+  const usedHeightPt = settings.rows * cardHeightPt + Math.max(0, settings.rows - 1) * gapYPt + marginTopPt + marginBottomPt
 
   return {
     capacity: settings.columns * settings.rows,
@@ -171,8 +187,10 @@ export function computePdfCapacity(settings: PdfImpositionSettings): {
     pageHeightPt: page.height,
     cardWidthPt,
     cardHeightPt,
-    marginXPt,
-    marginYPt,
+    marginTopPt,
+    marginRightPt,
+    marginBottomPt,
+    marginLeftPt,
     usedWidthPt,
     usedHeightPt,
     fitsPage: usedWidthPt <= page.width + 0.01 && usedHeightPt <= page.height + 0.01,
@@ -197,8 +215,8 @@ export async function imposePdf(sourceBytes: Uint8Array, settings: PdfImposition
     embeddedPages.forEach((embeddedPage, index) => {
       const column = index % settings.columns
       const row = Math.floor(index / settings.columns)
-      const x = size.marginXPt + column * (size.cardWidthPt + gapXPt)
-      const y = size.pageHeightPt - size.marginYPt - (row + 1) * size.cardHeightPt - row * gapYPt
+      const x = size.marginLeftPt + column * (size.cardWidthPt + gapXPt)
+      const y = size.pageHeightPt - size.marginTopPt - (row + 1) * size.cardHeightPt - row * gapYPt
 
       page.drawPage(embeddedPage, {
         x,
