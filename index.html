@@ -214,21 +214,17 @@
                 <p>Keep guides subtle on screen and printable on paper.</p>
               </div>
 
-              <div class="settings-grid guide-grid">
-                <label class="checkbox-control">
-                  <input id="showCutGuides" type="checkbox" checked />
-                  <span>Show cut guides</span>
-                </label>
-
-                <label>
-                  <span>Guide style</span>
-                  <select id="cutGuideMode">
-                    <option value="rectangle">Light rectangle</option>
-                    <option value="corners">Corner marks</option>
-                    <option value="both" selected>Both</option>
-                  </select>
-                </label>
-              </div>
+              <label>
+                <span>Guide style</span>
+                <select id="cutGuideMode">
+                  <option value="none">None</option>
+                  <option value="corners">Light crop marks</option>
+                  <option value="dotted">Dotted boxes</option>
+                  <option value="rectangle">Solid boxes</option>
+                  <option value="crop-dotted" selected>Crop marks + dotted boxes</option>
+                  <option value="crop-solid">Crop marks + solid boxes</option>
+                </select>
+              </label>
             </section>
 
             <div class="actions">

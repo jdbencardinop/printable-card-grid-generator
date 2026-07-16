@@ -101,7 +101,6 @@ const elements = {
   marginLeftCm: query<HTMLInputElement>('#marginLeftCm'),
   horizontalGapCm: query<HTMLInputElement>('#horizontalGapCm'),
   verticalGapCm: query<HTMLInputElement>('#verticalGapCm'),
-  showCutGuides: query<HTMLInputElement>('#showCutGuides'),
   cutGuideMode: query<HTMLSelectElement>('#cutGuideMode'),
   printButton: query<HTMLButtonElement>('#printButton'),
   pdfUpload: query<HTMLInputElement>('#pdfUpload'),
@@ -268,7 +267,7 @@ function getSettingsFromControls(): LayoutSettings {
     targetCardCount: readOptionalPositiveInteger(elements.targetCardCount),
     manualColumns: readOptionalPositiveInteger(elements.manualColumns),
     manualRows: readOptionalPositiveInteger(elements.manualRows),
-    cutGuideMode: elements.showCutGuides.checked ? guideModeValue : 'none',
+    cutGuideMode: guideModeValue,
   }
 }
 
